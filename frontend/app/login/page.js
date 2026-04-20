@@ -31,8 +31,9 @@ export default function Login() {
             
             if (role === 'super-admin') role = 'admin';
             
-            // Absolute routing based on role
-            router.push(`/dashboard/${role}`);
+            // Redirect admin to analytics, others to their dashboard
+            const redirect = role === 'admin' ? '/dashboard/admin/analytics' : `/dashboard/${role}`;
+            router.push(redirect);
         } catch (err) {
             setError('Invalid credentials. Please try again.');
             console.error('Login error:', err);
