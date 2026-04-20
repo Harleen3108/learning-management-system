@@ -21,16 +21,20 @@ export default function Login() {
         setError('');
         try {
             const res = await api.post('/auth/login', formData);
-            const user = res.data.data;
+            const { token, data: user } = res.data;
             let role = user.role.toLowerCase();
             
-            console.log('Login successful, role:', role); // Debugging
+            // Save token to localStorage for Bearer auth (cross-origin)
+            if (token) localStorage.setItem('token', token);
+
+            console.log('Login successful, role:', role);
             
             if (role === 'super-admin') role = 'admin';
             
             // Absolute routing based on role
             router.push(`/dashboard/${role}`);
         } catch (err) {
+            setError('Invalid credentials. Please try again.');
             console.error('Login error:', err);
         } finally {
             setLoading(false);

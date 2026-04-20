@@ -8,4 +8,15 @@ const api = axios.create({
     }
 });
 
+// Attach JWT token as Bearer header on every request (reliable cross-origin)
+api.interceptors.request.use((config) => {
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+    }
+    return config;
+});
+
 export default api;
