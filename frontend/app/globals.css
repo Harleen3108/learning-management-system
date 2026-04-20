@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-size: 90.625%; /* 14.5px base scaling for 90% UI feel */
+  }
+  :root {
+    --primary: #0047AB;
+    --primary-light: #E0E7FF;
+    --background: #FFFFFF;
+    --surface: #F8FAFC;
+    --text-main: #0F172A;
+    --text-muted: #64748B;
+    --accent: #F59E0B;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text-main);
+  @apply font-sans antialiased;
+}
+
+@layer components {
+  .dashboard-card {
+    @apply bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500;
+  }
+  
+  .btn-primary {
+    @apply bg-[#0047AB] hover:bg-[#003580] text-white font-bold py-4 px-8 rounded-2xl transition-all shadow-lg shadow-blue-900/10 active:scale-95 text-center;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 px-8 rounded-2xl transition-all active:scale-95 text-center;
+  }
+
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl;
+  }
+
+  .section-container {
+    @apply max-w-7xl mx-auto px-6 lg:px-8;
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}

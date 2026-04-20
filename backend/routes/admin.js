@@ -1,0 +1,56 @@
+const express = require('express');
+const {
+    getDashboardStats,
+    getUsers,
+    updateUser,
+    getTransactions,
+    processRefund,
+    getCoursesAdmin,
+    getAuditLogs,
+    createUser,
+    deleteUser,
+    getCoupons,
+    createCoupon,
+    deleteCoupon,
+    getPaymentLogs,
+    getInstructors,
+    updateInstructorStatus,
+    getCertificates,
+    revokeCertificate,
+    getSettings,
+    updateSettings,
+    getContentMonitoring,
+    getReviewStats
+} = require('../controllers/adminController');
+
+const { protect, authorize } = require('../middleware/auth');
+
+const router = express.Router();
+
+// Apply protection to all admin routes
+router.use(protect);
+router.use(authorize('admin'));
+
+router.get('/stats', getDashboardStats);
+router.get('/users', getUsers);
+router.post('/users', createUser);
+router.put('/users/:id', updateUser);
+router.delete('/users/:id', deleteUser);
+router.get('/transactions', getTransactions);
+router.post('/transactions/:id/refund', processRefund);
+router.get('/courses', getCoursesAdmin);
+router.get('/logs', getAuditLogs);
+router.get('/coupons', getCoupons);
+router.post('/coupons', createCoupon);
+router.delete('/coupons/:id', deleteCoupon);
+router.get('/payments/logs', getPaymentLogs);
+router.get('/instructors', getInstructors);
+router.put('/instructors/:id/status', updateInstructorStatus);
+router.get('/certificates', getCertificates);
+router.put('/certificates/:id/revoke', revokeCertificate);
+router.get('/settings', getSettings);
+router.put('/settings', updateSettings);
+router.get('/content/monitoring', getContentMonitoring);
+router.get('/reviews/stats', getReviewStats);
+
+module.exports = router;
