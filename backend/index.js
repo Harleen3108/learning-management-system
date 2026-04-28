@@ -34,6 +34,12 @@ app.use('/api/v1/support', require('./routes/support'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
 app.use('/api/v1/live-classes', require('./routes/liveClasses'));
 app.use('/api/v1/student', require('./routes/student'));
+app.use('/api/v1/parent', require('./routes/parent'));
+app.use('/api/v1/instructors', require('./routes/instructors'));
+app.use('/api/v1/categories', require('./routes/categories'));
+app.use('/api/v1/communication', require('./routes/communication'));
+app.use('/api/v1/performance', require('./routes/performance'));
+app.use('/api/v1/instructor-settings', require('./routes/instructorSettings'));
 
 app.get('/', (req, res) => {
     res.json({ message: 'LMS API is running' });

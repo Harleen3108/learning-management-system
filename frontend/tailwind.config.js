@@ -7,10 +7,11 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#2563EB",
-        secondary: "#0F172A",
-        accent: "#10B981",
-        background: "#F8FAFC",
+        primary: "#071739",
+        secondary: "#A68868",
+        accent: "#E3C39D",
+        background: "#f8fafc",
+        surface: "#ffffff",
       },
       borderRadius: {
         '2xl': '1rem',

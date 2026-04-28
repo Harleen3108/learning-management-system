@@ -72,7 +72,7 @@ export default function CertificateManagement() {
             <div className="space-y-8">
                 <div className="flex justify-between items-end">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Credential Ledger</h1>
+                        <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Credential Ledger</h1>
                         <p className="text-slate-400 mt-1 font-medium italic">Monitor issued certificates, verify authenticity, and manage revocations.</p>
                     </div>
                     <button 
@@ -87,23 +87,23 @@ export default function CertificateManagement() {
                 {/* Ledger Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
-                        <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
+                        <div className="w-14 h-14 bg-[#A68868]/10 rounded-2xl flex items-center justify-center text-[#A68868]">
                             <Award size={28} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Issued Today</p>
-                            <h4 className="text-2xl font-black text-slate-800 tracking-tight">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">Issued Today</p>
+                            <h4 className="text-2xl font-bold text-slate-800 tracking-tight">
                                 {certificates.filter(c => new Date(c.issueDate).toDateString() === new Date().toDateString()).length}
                             </h4>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
-                        <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
+                        <div className="w-14 h-14 bg-[#071739]/5 rounded-2xl flex items-center justify-center text-[#071739]">
                             <ShieldCheck size={28} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Total Active</p>
-                            <h4 className="text-2xl font-black text-slate-800 tracking-tight">{certificates.filter(c => c.status === 'active').length}</h4>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">Total Active</p>
+                            <h4 className="text-2xl font-bold text-slate-800 tracking-tight">{certificates.filter(c => c.status === 'active').length}</h4>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
@@ -111,8 +111,8 @@ export default function CertificateManagement() {
                             <ShieldOff size={28} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Total Revoked</p>
-                            <h4 className="text-2xl font-black text-slate-800 tracking-tight">{certificates.filter(c => c.status === 'revoked').length}</h4>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">Total Revoked</p>
+                            <h4 className="text-2xl font-bold text-slate-800 tracking-tight">{certificates.filter(c => c.status === 'revoked').length}</h4>
                         </div>
                     </div>
                 </div>
@@ -125,7 +125,7 @@ export default function CertificateManagement() {
                             <input 
                                 type="text" 
                                 placeholder="Search by Certificate ID, Student, or Course..." 
-                                className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-[#071739]/10 outline-none transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -136,16 +136,16 @@ export default function CertificateManagement() {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-slate-50/50">
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Certificate ID</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Holder / Course</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Status</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Issue Date</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Actions</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Certificate ID</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Holder / Course</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Status</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Issue Date</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="5" className="px-8 py-20 text-center text-slate-400 font-black uppercase tracking-widest text-[10px] animate-pulse">Syncing credential ledger...</td></tr>
+                                    <tr><td colSpan="5" className="px-8 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px] animate-pulse">Syncing credential ledger...</td></tr>
                                 ) : filteredCerts.length === 0 ? (
                                     <tr><td colSpan="5" className="px-8 py-20 text-center text-slate-400 font-bold italic tracking-tight">No credentials found matching your query.</td></tr>
                                 ) : (
@@ -156,7 +156,7 @@ export default function CertificateManagement() {
                                                     onClick={() => copyToClipboard(cert.certificateId)}
                                                     className="flex items-center gap-2 group/btn"
                                                 >
-                                                    <span className="text-xs font-black text-slate-800 font-mono tracking-tighter uppercase">{cert.certificateId}</span>
+                                                    <span className="text-xs font-bold text-slate-800 font-mono tracking-tighter uppercase">{cert.certificateId}</span>
                                                     {copiedId === cert.certificateId ? (
                                                         <Check size={12} className="text-emerald-500" />
                                                     ) : (
@@ -166,7 +166,7 @@ export default function CertificateManagement() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">{cert.student?.name}</span>
+                                                    <span className="text-sm font-bold text-slate-800 tracking-tight leading-none mb-1">{cert.student?.name}</span>
                                                     <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
                                                         <BookOpen size={10} /> {cert.course?.title}
                                                     </span>
@@ -174,15 +174,15 @@ export default function CertificateManagement() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <span className={clsx(
-                                                    "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
-                                                    cert.status === 'active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                                                    "px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
+                                                    cert.status === 'active' ? "bg-[#A68868]/10 text-[#A68868] border-[#A68868]/20" : "bg-rose-50 text-rose-600 border-rose-100"
                                                 )}>
                                                     {cert.status || 'active'}
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[11px] font-black text-slate-800 tracking-tight leading-none mb-1">{new Date(cert.issueDate).toLocaleDateString()}</span>
+                                                    <span className="text-[11px] font-bold text-slate-800 tracking-tight leading-none mb-1">{new Date(cert.issueDate).toLocaleDateString()}</span>
                                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{new Date(cert.issueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>
                                             </td>
@@ -193,7 +193,7 @@ export default function CertificateManagement() {
                                                             href={cert.url} 
                                                             target="_blank" 
                                                             rel="noopener noreferrer"
-                                                            className="p-3 bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all"
+                                                            className="p-3 bg-slate-100 text-slate-400 hover:bg-[#071739]/5 hover:text-[#071739] rounded-xl transition-all"
                                                             title="View Certificate"
                                                         >
                                                             <ExternalLink size={18} />

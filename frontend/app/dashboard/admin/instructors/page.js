@@ -1,42 +1,261 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import api from '@/services/api';
-import { 
-    Users, 
-    BookOpen, 
-    Star, 
-    CheckCircle2, 
-    XCircle, 
-    Award,
-    Mail,
-    Filter,
-    Search,
-    ChevronRight,
-    ArrowUpRight,
-    ShieldCheck,
-    Clock,
-    MoreVertical,
-    Edit2,
-    Trash,
-    Eye
+import {
+    Star, CheckCircle2, XCircle, ShieldCheck, BookOpen,
+    Users, ChevronDown, UserPlus, ExternalLink, Search,
+    MoreVertical, Edit2, Trash2, Clock, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { clsx } from 'clsx';
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+const fmt = (n) => {
+    if (!n) return '0';
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return n.toString();
+};
+
+const avatarUrl = (name, seed) =>
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+
+const STATUS_CONFIG = {
+    approved: { label: 'ACTIVE',   bg: 'bg-[#071739]/5',   text: 'text-[#071739]',   dot: 'bg-emerald-400' },
+    pending:  { label: 'PENDING',  bg: 'bg-[#A68868]/10',  text: 'text-[#A68868]',  dot: 'bg-amber-400'   },
+    rejected: { label: 'REJECTED', bg: 'bg-orange-50', text: 'text-orange-500', dot: 'bg-rose-400'    },
+};
+
+// ── Stat Card ────────────────────────────────────────────────────────────────
+function StatCard({ icon, label, value, iconBg, iconColor, valueColor, onView }) {
+    return (
+        <motion.div
+            whileHover={{ y: -3, boxShadow: '0 16px 40px rgba(0,0,0,0.08)' }}
+            className="flex-1 min-w-[170px] bg-white rounded-2xl p-5 cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-slate-100 transition-all"
+            onClick={onView}
+        >
+            {/* Top row: icon + eye */}
+            <div className="flex items-center justify-between mb-4">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
+                    <span className={iconColor}>{icon}</span>
+                </div>
+                <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all border border-slate-100">
+                    <Eye size={13} className="text-slate-400" />
+                </div>
+            </div>
+
+            {/* Value */}
+            <p className={`text-2xl font-bold leading-none mb-1 ${valueColor}`}>{value}</p>
+            {/* Label */}
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+        </motion.div>
+    );
+}
+
+// ── Instructor Card ──────────────────────────────────────────────────────────
+function InstructorCard({ ins, onView, onApprove, onReject, onDelete, onEdit, delay }) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const cfg = STATUS_CONFIG[ins.instructorStatus] || STATUS_CONFIG.pending;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, duration: 0.35 }}
+            className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-100 transition-all overflow-hidden flex flex-col"
+        >
+            {/* Card body */}
+            <div className="p-7 flex-1">
+                {/* Top row */}
+                <div className="flex items-start justify-between mb-5">
+                    <div className="relative">
+                        {/* Avatar */}
+                        <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden border-2 border-white shadow-md">
+                            <img
+                                src={avatarUrl(ins.name, ins._id)}
+                                alt={ins.name}
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
+                        {/* Online dot */}
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${cfg.dot}`} />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${cfg.bg} ${cfg.text}`}>
+                            {cfg.label}
+                        </span>
+                        <div className="relative">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v); }}
+                                className="p-1.5 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all"
+                            >
+                                <MoreVertical size={16} />
+                            </button>
+                            <AnimatePresence>
+                                {menuOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9, y: 6 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, y: 6 }}
+                                        onClick={e => e.stopPropagation()}
+                                        className="absolute right-0 mt-1.5 w-44 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-20"
+                                    >
+                                        <button onClick={() => { onView(); setMenuOpen(false); }}
+                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-[#071739]/5 hover:text-[#071739] transition-all">
+                                            <BookOpen size={13} /> View Dashboard
+                                        </button>
+                                        <button onClick={() => { onEdit(); setMenuOpen(false); }}
+                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
+                                            <Edit2 size={13} /> Edit Profile
+                                        </button>
+                                        {ins.instructorStatus === 'pending' && (<>
+                                            <div className="h-px bg-slate-50 mx-3 my-1" />
+                                            <button onClick={() => { onApprove(); setMenuOpen(false); }}
+                                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-all">
+                                                <CheckCircle2 size={13} /> Approve
+                                            </button>
+                                            <button onClick={() => { onReject(); setMenuOpen(false); }}
+                                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-orange-500 hover:bg-orange-50 transition-all">
+                                                <XCircle size={13} /> Reject
+                                            </button>
+                                        </>)}
+                                        <div className="h-px bg-slate-50 mx-3 my-1" />
+                                        <button onClick={() => { onDelete(); setMenuOpen(false); }}
+                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-50 transition-all">
+                                            <Trash2 size={13} /> Delete
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Name / email / specialty */}
+                <div className="mb-5">
+                    <h3 className="text-lg font-bold text-slate-800 leading-tight mb-0.5">{ins.name}</h3>
+                    <p className="text-xs text-slate-400 font-medium mb-2">{ins.email}</p>
+                    <p className="text-[10px] font-bold tracking-widest uppercase text-[#071739]">
+                        {ins.instructorSpecialty || 'Senior Educator'}
+                    </p>
+                </div>
+
+                {/* Metrics row */}
+                <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-50">
+                    <div>
+                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-1">Courses</p>
+                        <p className="text-base font-bold text-slate-700">
+                            {String(ins.courseCount || 0).padStart(2, '0')}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-1">Students</p>
+                        <p className="text-base font-bold text-slate-700">{fmt(ins.studentCount)}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-1">Rating</p>
+                        <p className="text-base font-bold text-slate-700 flex items-center gap-1">
+                            <Star size={11} className="text-[#A68868] fill-[#A68868]" />
+                            {ins.averageRating ? ins.averageRating.toFixed(1) : '—'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* View Dashboard CTA */}
+            <button
+                onClick={onView}
+                className="w-full py-4 text-[#071739] font-bold text-xs uppercase tracking-widest bg-slate-50 hover:bg-[#071739]/5 border-t border-slate-100 transition-all rounded-b-3xl"
+            >
+                View Dashboard
+            </button>
+        </motion.div>
+    );
+}
+
+// ── Recent Applications Panel ────────────────────────────────────────────────
+function RecentApplications({ instructors }) {
+    const router = useRouter();
+    const recent = instructors
+        .filter(i => i.instructorStatus === 'pending')
+        .slice(0, 5);
+
+    const timeAgo = (d) => {
+        if (!d) return '—';
+        const diff = Date.now() - new Date(d).getTime();
+        const h = Math.floor(diff / 3600000);
+        if (h < 1) return 'Just now';
+        if (h < 24) return `${h}H AGO`;
+        return `${Math.floor(h / 24)}D AGO`;
+    };
+
+    return (
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-7">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-sm font-bold text-slate-800">Recent Applications</h3>
+                <button className="text-[10px] font-bold text-[#071739] uppercase tracking-widest hover:text-[#A68868] transition-all">
+                    See All
+                </button>
+            </div>
+            {recent.length === 0 ? (
+                <div className="py-8 text-center text-slate-300 text-xs font-bold">No pending applications</div>
+            ) : (
+                <div className="space-y-1">
+                    {recent.map((ins, i) => (
+                        <motion.div
+                            key={ins._id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.06 }}
+                            className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-all group"
+                        >
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden shrink-0">
+                                <img src={avatarUrl(ins.name, ins._id)} alt={ins.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-slate-700 truncate">{ins.name}</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                    Applied {timeAgo(ins.createdAt)} · {ins.instructorSpecialty || 'General'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => router.push(`/dashboard/admin/instructors/${ins._id}`)}
+                                className="p-2 text-slate-200 group-hover:text-[#071739] transition-all"
+                            >
+                                <ExternalLink size={14} />
+                            </button>
+                        </motion.div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Main Page ────────────────────────────────────────────────────────────────
 export default function InstructorManagement() {
+    const router = useRouter();
     const [instructors, setInstructors] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedInstructor, setSelectedInstructor] = useState(null);
     const [editingInstructor, setEditingInstructor] = useState(null);
     const [filter, setFilter] = useState('all');
-    const [activeMenu, setActiveMenu] = useState(null);
+    const [search, setSearch] = useState('');
+    const [showOnboard, setShowOnboard] = useState(false);
+    const [onboardForm, setOnboardForm] = useState({ name: '', email: '', password: '', instructorSpecialty: '', instructorBio: '' });
+    const [onboardLoading, setOnboardLoading] = useState(false);
+    const [toast, setToast] = useState(null);
+
+    const showToast = (msg, type = 'success') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3500);
+    };
 
     const fetchInstructors = async () => {
         setLoading(true);
         try {
             const res = await api.get('/admin/instructors');
-            setInstructors(res.data.data);
+            setInstructors(res.data.data || []);
         } catch (err) {
             console.error('Failed to fetch instructors:', err);
         } finally {
@@ -44,371 +263,290 @@ export default function InstructorManagement() {
         }
     };
 
-    useEffect(() => {
-        fetchInstructors();
-    }, []);
+    useEffect(() => { fetchInstructors(); }, []);
 
     const handleUpdateStatus = async (id, status) => {
         try {
             await api.put(`/admin/instructors/${id}/status`, { status });
             fetchInstructors();
-        } catch (err) {
-            alert('Failed to update status');
-        }
+        } catch { alert('Failed to update status'); }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm('Are you sure you want to delete this instructor profile? They will be marked as inactive.')) return;
+        if (!confirm('Mark this instructor as inactive?')) return;
         try {
             await api.delete(`/admin/users/${id}`);
             fetchInstructors();
-            setActiveMenu(null);
-        } catch (err) {
-            alert('Failed to delete instructor');
-        }
+        } catch { alert('Failed to delete'); }
     };
 
     const handleEditSave = async (e) => {
         e.preventDefault();
-        // Strip out read-only and aggregated fields that the backend shouldn't receive
         const { _id, courseCount, studentCount, averageRating, createdAt, ...updateData } = editingInstructor;
         try {
             await api.put(`/admin/users/${_id}`, updateData);
             setEditingInstructor(null);
             fetchInstructors();
+        } catch { alert('Failed to update'); }
+    };
+
+    const handleOnboardSubmit = async (e) => {
+        e.preventDefault();
+        if (!onboardForm.name.trim() || !onboardForm.email.trim() || !onboardForm.password.trim()) {
+            showToast('Name, email and password are required', 'error');
+            return;
+        }
+        setOnboardLoading(true);
+        try {
+            await api.post('/admin/users', { ...onboardForm, role: 'instructor' });
+            showToast(`✓ ${onboardForm.name} onboarded as instructor!`);
+            setShowOnboard(false);
+            setOnboardForm({ name: '', email: '', password: '', instructorSpecialty: '', instructorBio: '' });
+            fetchInstructors();
         } catch (err) {
-            console.error('Update failed:', err);
-            alert('Failed to update profile');
+            showToast(err?.response?.data?.message || 'Failed to create instructor', 'error');
+        } finally {
+            setOnboardLoading(false);
         }
     };
 
-    const filteredInstructors = instructors.filter(ins => {
-        if (filter === 'all') return true;
-        return ins.instructorStatus === filter;
+
+    const filtered = instructors.filter(ins => {
+        const matchStatus = filter === 'all' || ins.instructorStatus === filter;
+        const matchSearch = !search || ins.name.toLowerCase().includes(search.toLowerCase())
+            || ins.email?.toLowerCase().includes(search.toLowerCase());
+        return matchStatus && matchSearch;
     });
+
+    // stats
+    const pendingCount  = instructors.filter(i => i.instructorStatus === 'pending').length;
+    const totalCourses  = instructors.reduce((s, i) => s + (i.courseCount || 0), 0);
+    const avgRating     = instructors.length
+        ? (instructors.reduce((s, i) => s + (i.averageRating || 0), 0) /
+           instructors.filter(i => i.averageRating).length || 0).toFixed(2)
+        : '—';
+
+    const specialties = ['All Specializations', ...new Set(
+        instructors.map(i => i.instructorSpecialty).filter(Boolean)
+    )];
 
     return (
         <AdminLayout>
-            <div className="space-y-8" onClick={() => setActiveMenu(null)}>
-                <div className="flex justify-between items-end">
+            <div className="space-y-8" onClick={() => {}}>
+
+                {/* ── Page Header ── */}
+                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Instructor Fleet</h1>
-                        <p className="text-slate-400 mt-1 font-medium italic">Manage teaching credentials, course performance, and student impact metrics.</p>
+                        <h1 className="text-4xl font-bold text-slate-800 tracking-tight">Instructor Fleet</h1>
+                        <p className="text-slate-400 mt-2 font-medium max-w-md leading-relaxed text-sm">
+                            Manage teaching credentials, course performance, and student impact metrics across the global educator network.
+                        </p>
                     </div>
-                    <div className="flex gap-4">
-                        <select 
-                            className="bg-white border border-slate-100 rounded-xl px-4 py-2 text-sm font-bold text-slate-600 outline-none focus:ring-4 focus:ring-blue-100 transition-all"
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value)}
-                        >
-                            <option value="all">All Instructors</option>
-                            <option value="pending">Pending Approval</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    </div>
-                </div>
 
-                {/* Stat Highlights */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
-                        <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
-                            <ShieldCheck size={28} />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending Review</p>
-                            <h4 className="text-2xl font-black text-slate-800">{instructors.filter(i => i.instructorStatus === 'pending').length}</h4>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
-                        <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
-                            <BookOpen size={28} />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Courses</p>
-                            <h4 className="text-2xl font-black text-slate-800">{instructors.reduce((sum, i) => sum + (i.courseCount || 0), 0)}</h4>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
-                        <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
-                            <Award size={28} />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avg Platform Rating</p>
-                            <h4 className="text-2xl font-black text-slate-800">4.8</h4>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Instructor Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {loading ? (
-                        <div className="col-span-full py-20 text-center text-slate-400 font-black uppercase tracking-widest text-xs animate-pulse">Syncing Instructor Data...</div>
-                    ) : filteredInstructors.length === 0 ? (
-                        <div className="col-span-full py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-center">
-                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No instructors match your criteria</p>
-                        </div>
-                    ) : (
-                        filteredInstructors.map((ins) => (
-                            <motion.div 
-                                layout
-                                key={ins._id}
-                                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all overflow-hidden group relative"
+                    <div className="flex items-center gap-3 shrink-0">
+                        {/* Specialization filter */}
+                        <div className="relative">
+                            <select
+                                value={filter}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    if (val === 'All Specializations') { setFilter('all'); return; }
+                                    // map to status values
+                                    if (val === 'pending' || val === 'approved' || val === 'rejected') setFilter(val);
+                                    else setFilter('all');
+                                }}
+                                className="appearance-none bg-white border border-slate-200 rounded-2xl pl-4 pr-10 py-3 text-sm font-bold text-slate-600 outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all shadow-sm cursor-pointer"
                             >
-                                <div className="p-8">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl font-black text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                            {ins.name.charAt(0)}
-                                        </div>
-                                        <div className="flex gap-2 items-center">
-                                            <span className={clsx(
-                                                "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border",
-                                                ins.instructorStatus === 'approved' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                                                ins.instructorStatus === 'pending' ? "bg-amber-50 text-amber-600 border-amber-100" :
-                                                "bg-rose-50 text-rose-600 border-rose-100"
-                                            )}>
-                                                {ins.instructorStatus}
-                                            </span>
-                                            <div className="relative">
-                                                <button 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActiveMenu(activeMenu === ins._id ? null : ins._id);
-                                                    }}
-                                                    className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-800 transition-all"
-                                                >
-                                                    <MoreVertical size={18} />
-                                                </button>
-                                                
-                                                <AnimatePresence>
-                                                    {activeMenu === ins._id && (
-                                                        <motion.div 
-                                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                            className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-10"
-                                                        >
-                                                            <button 
-                                                                onClick={() => { setSelectedInstructor(ins); setActiveMenu(null); }}
-                                                                className="w-full flex items-center gap-3 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all"
-                                                            >
-                                                                <Eye size={16} /> View Profile
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => { setEditingInstructor(ins); setActiveMenu(null); }}
-                                                                className="w-full flex items-center gap-3 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all"
-                                                            >
-                                                                <Edit2 size={16} /> Edit Profile
-                                                            </button>
-                                                            <div className="h-px bg-slate-50 my-1" />
-                                                            <button 
-                                                                onClick={() => handleDelete(ins._id)}
-                                                                className="w-full flex items-center gap-3 px-4 py-2 text-sm font-bold text-rose-500 hover:bg-rose-50 transition-all"
-                                                            >
-                                                                <Trash size={16} /> Delete Profile
-                                                            </button>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <option value="all">All Specializations</option>
+                                <option value="pending">Pending Approval</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                            <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
 
-                                    <h3 className="text-xl font-black text-slate-800 tracking-tight leading-none mb-1">{ins.name}</h3>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">{ins.instructorSpecialty || 'Senior Educator'}</p>
+                        {/* Onboard button */}
+                        <button
+                            onClick={() => setShowOnboard(true)}
+                            className="flex items-center gap-2.5 bg-[#071739] hover:bg-[#020a1a] text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-slate-900/10 transition-all"
+                        >
+                            <UserPlus size={16} />
+                            Onboard Instructor
+                        </button>
+                    </div>
+                </div>
 
-                                    <div className="grid grid-cols-3 gap-4 pt-6 border-t border-slate-50">
-                                        <div className="text-center">
-                                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Courses</p>
-                                            <p className="text-sm font-black text-slate-800">{ins.courseCount || 0}</p>
-                                        </div>
-                                        <div className="text-center border-x border-slate-50">
-                                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2 flex justify-center">
-                                                <Users size={12} />
-                                            </p>
-                                            <p className="text-sm font-black text-slate-800">{ins.studentCount || 0}</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2 flex justify-center">
-                                                <Star size={12} />
-                                            </p>
-                                            <p className="text-sm font-black text-slate-800">{ins.averageRating?.toFixed(1) || '-'}</p>
-                                        </div>
-                                    </div>
+                {/* ── Stat Cards ── */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatCard
+                        icon={<ShieldCheck size={18} />}
+                        label="Pending Review"
+                        value={pendingCount}
+                        iconBg="bg-[#A68868]/10"
+                        iconColor="text-[#A68868]"
+                        valueColor="text-[#A68868]"
+                        onView={() => setFilter('pending')}
+                    />
+                    <StatCard
+                        icon={<BookOpen size={18} />}
+                        label="Active Courses"
+                        value={totalCourses.toLocaleString()}
+                        iconBg="bg-[#071739]/5"
+                        iconColor="text-[#071739]"
+                        valueColor="text-[#071739]"
+                        onView={() => setFilter('approved')}
+                    />
+                    <StatCard
+                        icon={<Star size={18} />}
+                        label="Avg Rating"
+                        value={avgRating}
+                        iconBg="bg-[#A68868]/5"
+                        iconColor="text-[#A68868]"
+                        valueColor="text-[#A68868]"
+                        onView={() => {}}
+                    />
+                    <StatCard
+                        icon={<Users size={18} />}
+                        label="Total Instructors"
+                        value={instructors.length}
+                        iconBg="bg-[#071739]/5"
+                        iconColor="text-[#071739]"
+                        valueColor="text-[#071739]"
+                        onView={() => setFilter('all')}
+                    />
+                </div>
 
-                                    <div className="mt-8 flex gap-3">
-                                        {ins.instructorStatus === 'pending' ? (
-                                            <>
-                                                <button 
-                                                    onClick={() => handleUpdateStatus(ins._id, 'approved')}
-                                                    className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
-                                                >
-                                                    Approve
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleUpdateStatus(ins._id, 'rejected')}
-                                                    className="px-4 border border-rose-100 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
-                                                >
-                                                    <XCircle size={18} />
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <button 
-                                                onClick={() => setSelectedInstructor(ins)}
-                                                className="w-full bg-slate-50 text-slate-500 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest group-hover:bg-blue-50 group-hover:text-blue-600 transition-all border border-slate-100"
-                                            >
-                                                View Dashboard
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))
-                    )}
+                {/* ── Search ── */}
+                <div className="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl px-4 py-3 shadow-sm max-w-sm">
+                    <Search size={16} className="text-slate-300" />
+                    <input
+                        type="text"
+                        placeholder="Search instructor records..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="flex-1 text-sm bg-transparent outline-none text-slate-600 placeholder:text-slate-300 font-medium"
+                    />
+                </div>
+
+                {/* ── Main grid: cards + sidebar ── */}
+                <div className="flex flex-col xl:flex-row gap-7">
+                    {/* Instructor cards */}
+                    <div className="flex-1">
+                        {loading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {[1,2,3].map(i => (
+                                    <div key={i} className="h-72 bg-white rounded-3xl border border-slate-100 animate-pulse" />
+                                ))}
+                            </div>
+                        ) : filtered.length === 0 ? (
+                            <div className="py-24 bg-white rounded-3xl border border-dashed border-slate-200 text-center">
+                                <Users size={36} className="text-slate-200 mx-auto mb-3" />
+                                <p className="text-slate-400 font-bold text-sm">No instructors match your criteria</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filtered.map((ins, i) => (
+                                    <InstructorCard
+                                        key={ins._id}
+                                        ins={ins}
+                                        delay={i * 0.06}
+                                        onView={() => router.push(`/dashboard/admin/instructors/${ins._id}`)}
+                                        onApprove={() => handleUpdateStatus(ins._id, 'approved')}
+                                        onReject={() => handleUpdateStatus(ins._id, 'rejected')}
+                                        onDelete={() => handleDelete(ins._id)}
+                                        onEdit={() => setEditingInstructor(ins)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right sidebar: Recent Applications */}
+                    <div className="xl:w-80 shrink-0">
+                        <RecentApplications instructors={instructors} />
+                    </div>
                 </div>
             </div>
 
-            {/* Profile Detail Modal */}
-            <AnimatePresence>
-                {selectedInstructor && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setSelectedInstructor(null)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-                        />
-                        <motion.div 
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden"
-                        >
-                            <div className="p-12">
-                                <div className="flex justify-between items-start mb-10">
-                                    <div className="flex gap-6 items-center">
-                                        <div className="w-24 h-24 rounded-3xl bg-blue-600 text-white flex items-center justify-center text-4xl font-black">
-                                            {selectedInstructor.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <h2 className="text-3xl font-black text-slate-800 tracking-tight">{selectedInstructor.name}</h2>
-                                            <div className="flex items-center gap-2 text-slate-400 mt-1">
-                                                <Mail size={16} />
-                                                <p className="font-bold text-sm tracking-tight">{selectedInstructor.email}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setSelectedInstructor(null)} className="p-3 hover:bg-slate-50 rounded-2xl text-slate-300 hover:text-slate-800 transition-all">
-                                        <XCircle size={24} />
-                                    </button>
-                                </div>
-
-                                <div className="space-y-8">
-                                    <div className="space-y-3">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">About the Instructor</p>
-                                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 italic text-slate-600 font-medium leading-relaxed">
-                                            "{selectedInstructor.instructorBio || 'No biography provided yet. This instructor is currently building their profile.'}"
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-8">
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-end">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enrolment Impact</p>
-                                                <p className="text-xl font-black text-slate-800">{selectedInstructor.studentCount}</p>
-                                            </div>
-                                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-blue-600 w-[65%]" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-end">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Review Velocity</p>
-                                                <p className="text-xl font-black text-slate-800">{selectedInstructor.averageRating?.toFixed(1) || '0.0'}</p>
-                                            </div>
-                                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-amber-500 w-[85%]" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-8 flex gap-4">
-                                        <button className="flex-1 bg-slate-900 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-200 flex items-center justify-center gap-3">
-                                            Course Catalog <ChevronRight size={18} />
-                                        </button>
-                                        <button 
-                                            onClick={() => { handleDelete(selectedInstructor._id); setSelectedInstructor(null); }}
-                                            className="px-10 border border-slate-200 text-slate-500 py-5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
-                                        >
-                                            Suspend
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Edit Profile Modal */}
+            {/* ── Edit Modal ── */}
             <AnimatePresence>
                 {editingInstructor && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setEditingInstructor(null)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
                         />
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-lg bg-white rounded-[3rem] shadow-2xl overflow-hidden p-10"
+                            className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden p-9"
                         >
-                            <h2 className="text-2xl font-black text-slate-800 mb-8 tracking-tight">Edit Instructor Profile</h2>
-                            <form onSubmit={handleEditSave} className="space-y-6">
-                                <div className="space-y-4">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                                    <input 
-                                        type="text" 
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all"
+                            <h2 className="text-xl font-bold text-slate-800 mb-7 tracking-tight">Edit Instructor</h2>
+                            <form onSubmit={handleEditSave} className="space-y-5">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Full Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
                                         value={editingInstructor.name}
-                                        onChange={e => setEditingInstructor({...editingInstructor, name: e.target.value})}
+                                        onChange={e => setEditingInstructor({ ...editingInstructor, name: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-4">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Specialty</label>
-                                    <input 
-                                        type="text" 
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all"
-                                        placeholder="EX: Full Stack Developer"
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Specialty</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Full Stack Developer"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
                                         value={editingInstructor.instructorSpecialty || ''}
-                                        onChange={e => setEditingInstructor({...editingInstructor, instructorSpecialty: e.target.value})}
+                                        onChange={e => setEditingInstructor({ ...editingInstructor, instructorSpecialty: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-4">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bio</label>
-                                    <textarea 
-                                        rows="4"
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all resize-none"
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Phone Number</label>
+                                    <input
+                                        type="text"
+                                        placeholder="+91 XXXXX XXXXX"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
+                                        value={editingInstructor.phone || ''}
+                                        onChange={e => setEditingInstructor({ ...editingInstructor, phone: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Change Password</label>
+                                    <input
+                                        type="password"
+                                        placeholder="••••••••"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
+                                        value={editingInstructor.password || ''}
+                                        onChange={e => setEditingInstructor({ ...editingInstructor, password: e.target.value })}
+                                    />
+                                    <p className="text-[9px] text-slate-400 font-medium mt-1 ml-1">Leave blank to keep current password</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Bio</label>
+                                    <textarea
+                                        rows="2"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-medium text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all resize-none"
                                         value={editingInstructor.instructorBio || ''}
-                                        onChange={e => setEditingInstructor({...editingInstructor, instructorBio: e.target.value})}
+                                        onChange={e => setEditingInstructor({ ...editingInstructor, instructorBio: e.target.value })}
                                     />
                                 </div>
-                                <div className="flex gap-4 pt-4">
-                                    <button 
-                                        type="button" 
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        type="button"
                                         onClick={() => setEditingInstructor(null)}
-                                        className="flex-1 py-4 text-slate-400 font-bold hover:bg-slate-50 rounded-2xl transition-all"
+                                        className="flex-1 py-4 text-slate-400 font-bold text-sm hover:bg-slate-50 rounded-2xl transition-all"
                                     >
                                         Cancel
                                     </button>
-                                    <button 
-                                        type="submit" 
-                                        className="flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
+                                    <button
+                                        type="submit"
+                                        className="flex-[2] bg-[#071739] text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-[#020a1a] transition-all"
                                     >
                                         Save Changes
                                     </button>
@@ -418,6 +556,153 @@ export default function InstructorManagement() {
                     </div>
                 )}
             </AnimatePresence>
+            {/* ── Onboard Instructor Modal ── */}
+            <AnimatePresence>
+                {showOnboard && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowOnboard(false)}
+                            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+                        >
+                            {/* Modal header */}
+                            <div className="flex items-center gap-4 px-9 pt-9 pb-6 border-b border-slate-50">
+                                <div className="w-11 h-11 rounded-2xl bg-[#071739]/5 text-[#071739] flex items-center justify-center shrink-0">
+                                    <UserPlus size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-800 tracking-tight">Onboard Instructor</h2>
+                                    <p className="text-xs text-slate-400 font-medium mt-0.5">Create a new instructor account on the platform</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowOnboard(false)}
+                                    className="ml-auto p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+                                >
+                                    <XCircle size={20} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleOnboardSubmit} className="px-9 py-7 space-y-5">
+                                {/* Row: Name + Email */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                                            Full Name <span className="text-rose-400">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="e.g. Dr. Jane Smith"
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 font-semibold text-sm text-slate-700 outline-none focus:ring-4 focus:ring-[#071739]/10 focus:border-[#071739]/20 transition-all placeholder:text-slate-300"
+                                            value={onboardForm.name}
+                                            onChange={e => setOnboardForm({ ...onboardForm, name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                                            Email Address <span className="text-rose-400">*</span>
+                                        </label>
+                                        <input
+                                            type="email"
+                                            required
+                                            placeholder="jane@example.com"
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 font-semibold text-sm text-slate-700 outline-none focus:ring-4 focus:ring-[#071739]/10 focus:border-[#071739]/20 transition-all placeholder:text-slate-300"
+                                            value={onboardForm.email}
+                                            onChange={e => setOnboardForm({ ...onboardForm, email: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Password */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                                        Password <span className="text-rose-400">*</span>
+                                    </label>
+                                    <input
+                                        type="password"
+                                        required
+                                        placeholder="Min. 8 characters"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 font-semibold text-sm text-slate-700 outline-none focus:ring-4 focus:ring-[#071739]/10 focus:border-[#071739]/20 transition-all placeholder:text-slate-300"
+                                        value={onboardForm.password}
+                                        onChange={e => setOnboardForm({ ...onboardForm, password: e.target.value })}
+                                    />
+                                </div>
+
+                                {/* Specialty */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Specialty / Title</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Full Stack Developer, Data Scientist"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 font-semibold text-sm text-slate-700 outline-none focus:ring-4 focus:ring-[#071739]/10 focus:border-[#071739]/20 transition-all placeholder:text-slate-300"
+                                        value={onboardForm.instructorSpecialty}
+                                        onChange={e => setOnboardForm({ ...onboardForm, instructorSpecialty: e.target.value })}
+                                    />
+                                </div>
+
+                                {/* Bio */}
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Short Bio</label>
+                                    <textarea
+                                        rows="3"
+                                        placeholder="Brief introduction about the instructor..."
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 font-medium text-sm text-slate-700 outline-none focus:ring-4 focus:ring-[#071739]/10 focus:border-[#071739]/20 transition-all resize-none placeholder:text-slate-300"
+                                        value={onboardForm.instructorBio}
+                                        onChange={e => setOnboardForm({ ...onboardForm, instructorBio: e.target.value })}
+                                    />
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-3 pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowOnboard(false)}
+                                        className="flex-1 py-3.5 text-slate-400 font-bold text-sm hover:bg-slate-50 rounded-2xl transition-all border border-slate-100"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={onboardLoading}
+                                        className="flex-[2] bg-[#071739] text-white py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-[#020a1a] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                                    >
+                                        {onboardLoading ? (
+                                            <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating...</>
+                                        ) : (
+                                            <><UserPlus size={15} /> Create Instructor</>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Toast */}
+            <AnimatePresence>
+                {toast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 30 }}
+                        className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-6 py-4 rounded-2xl text-white text-sm font-bold shadow-2xl
+                            ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                    >
+                        {toast.type === 'error' ? <XCircle size={17} /> : <CheckCircle2 size={17} />}
+                        {toast.msg}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </AdminLayout>
+
     );
 }

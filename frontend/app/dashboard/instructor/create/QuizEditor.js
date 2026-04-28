@@ -104,11 +104,11 @@ export default function QuizEditor({ quiz, onSave, onClose }) {
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Questions ({editedQuiz.questions.length})</h4>
                 <div className="flex gap-2">
-                  <label className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all cursor-pointer">
+                  <label className="p-2 bg-slate-50 text-[#071739] rounded-lg hover:bg-slate-100 transition-all cursor-pointer">
                     <Upload size={14} />
                     <input type="file" accept=".csv" className="hidden" onChange={handleBulkUpload} />
                   </label>
-                  <button onClick={addQuestion} className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
+                  <button onClick={addQuestion} className="p-2 bg-[#071739] text-white rounded-lg hover:opacity-90 transition-all">
                     <Plus size={14} />
                   </button>
                 </div>
@@ -144,7 +144,7 @@ export default function QuizEditor({ quiz, onSave, onClose }) {
                     <textarea 
                       value={editedQuiz.questions[activeQuestion].questionText}
                       onChange={(e) => updateQuestion(activeQuestion, 'questionText', e.target.value)}
-                      className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 transition-all min-h-[100px]"
+                      className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#071739]/10 transition-all min-h-[100px]"
                     />
                   </div>
 
@@ -193,7 +193,7 @@ export default function QuizEditor({ quiz, onSave, onClose }) {
                           nextQ[activeQuestion].options.push({ text: 'New Option', isCorrect: false });
                           setEditedQuiz({ ...editedQuiz, questions: nextQ });
                         }}
-                        className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1 mt-2 hover:translate-x-1 transition-transform"
+                        className="text-[10px] font-black text-[#071739] uppercase flex items-center gap-1 mt-2 hover:translate-x-1 transition-transform"
                       >
                         <Plus size={12} /> Add Option
                       </button>
@@ -233,13 +233,13 @@ export default function QuizEditor({ quiz, onSave, onClose }) {
                   checked={editedQuiz.randomize}
                   onChange={(e) => setEditedQuiz({ ...editedQuiz, randomize: e.target.checked })}
                 />
-                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editedQuiz.randomize ? 'translate-x-4 bg-blue-600' : ''}`} />
+                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${editedQuiz.randomize ? 'translate-x-4 bg-[#071739]' : ''}`} />
              </div>
              <span className="text-xs font-bold text-slate-600">Shuffle Questions</span>
           </label>
           <button 
             onClick={() => onSave(editedQuiz)}
-            className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
+            className="px-8 py-3 bg-[#071739] text-white rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-slate-900/10"
           >
             Done
           </button>

@@ -20,23 +20,15 @@ export default function AdminPage() {
                 if (role !== 'admin' && role !== 'super-admin') {
                     router.push('/dashboard/' + role);
                 } else {
-                    setUser(userData);
+                    // Redirect to analytics as requested
+                    router.push('/dashboard/admin/analytics');
                 }
             } catch (err) {
                 router.push('/login');
-            } finally {
-                setLoading(false);
             }
         };
         fetchUser();
     }, [router]);
 
-    if (loading) return null;
-    if (!user) return null;
-
-    return (
-        <AdminLayout>
-            <AdminDashboard user={user} />
-        </AdminLayout>
-    );
+    return null;
 }

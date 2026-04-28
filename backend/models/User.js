@@ -35,6 +35,13 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: 'User'
     }],
+    linkedParent: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User'
+    },
+    dob: {
+        type: Date
+    },
     isActive: {
         type: Boolean,
         default: true
@@ -49,6 +56,20 @@ const userSchema = new mongoose.Schema({
         trim: true
     },
     instructorSpecialty: {
+        type: String,
+        trim: true
+    },
+    profilePhoto: {
+        type: String,
+        default: 'no-photo.jpg'
+    },
+    socialLinks: {
+        website: String,
+        linkedin: String,
+        twitter: String,
+        youtube: String
+    },
+    phone: {
         type: String,
         trim: true
     },

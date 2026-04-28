@@ -31,8 +31,8 @@ exports.checkEnrollment = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
 
-        // 1. Allow Admin/Super-Admin
-        if (req.user.role === 'admin' || req.user.role === 'super-admin') {
+        // 1. Allow Admin/Super-Admin/Instructor
+        if (req.user.role === 'admin' || req.user.role === 'super-admin' || req.user.role === 'instructor') {
             return next();
         }
 

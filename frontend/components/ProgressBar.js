@@ -22,7 +22,7 @@ export default function ProgressBar() {
                     animate={{ width: '100%', opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.5, ease: "easeInOut" }}
-                    className="fixed top-0 left-0 h-0.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 z-[9999] shadow-[0_0_10px_rgba(37,99,235,0.5)]"
+                    className="fixed top-0 left-0 h-0.5 bg-gradient-to-r from-primary via-indigo-500 to-primary z-[9999] shadow-[0_0_10px_rgba(37,99,235,0.5)]"
                 />
             )}
         </AnimatePresence>

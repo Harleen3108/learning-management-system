@@ -77,7 +77,7 @@ export default function ReviewsPage() {
             <Card key={i} className="p-8 border-slate-100 shadow-sm flex items-center gap-6">
                <div className={clsx(
                  "w-16 h-16 rounded-3xl flex items-center justify-center",
-                 sentiment === 'Positive' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+                 sentiment === 'Positive' ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-[#071739]"
                )}>
                   {sentiment === 'Positive' ? <Smile size={28} /> : <TrendingUp size={28} />}
                </div>
@@ -96,7 +96,7 @@ export default function ReviewsPage() {
               <input 
                 type="text" 
                 placeholder="Search reviews or courses..." 
-                className="w-full bg-white border border-slate-100 py-4 pl-12 pr-4 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-blue-600/5 transition-all"
+                className="w-full bg-white border border-slate-100 py-4 pl-12 pr-4 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-[#071739]/5 transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -146,7 +146,7 @@ export default function ReviewsPage() {
                      <div className={clsx(
                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border",
                        review.sentimentLabel === 'Positive' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                       review.sentimentLabel === 'Constructive' ? "bg-blue-50 text-blue-600 border-blue-100" :
+                       review.sentimentLabel === 'Constructive' ? "bg-slate-50 text-[#071739] border-slate-100" :
                        "bg-slate-50 text-slate-400 border-slate-100"
                      )}>
                         {review.sentimentLabel === 'Positive' ? <Smile size={12} /> : 
@@ -159,7 +159,7 @@ export default function ReviewsPage() {
                   <div className="flex-1 space-y-4 relative">
                      <Quote className="absolute -top-4 -left-4 text-slate-50" size={48} />
                      <div className="relative z-10">
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <p className="text-[10px] font-black text-[#071739] uppercase tracking-widest mb-2 flex items-center gap-2">
                            <BookOpen size={12} /> {review.course.title}
                         </p>
                         <h4 className="text-lg font-black text-slate-900 leading-tight mb-2">{review.title}</h4>
@@ -175,7 +175,7 @@ export default function ReviewsPage() {
                               <Megaphone size={14} /> Report
                            </button>
                         </div>
-                        <button className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">Reply to Student</button>
+                        <button className="text-[10px] font-black text-[#071739] uppercase tracking-widest hover:underline">Reply to Student</button>
                      </div>
                   </div>
                 </div>

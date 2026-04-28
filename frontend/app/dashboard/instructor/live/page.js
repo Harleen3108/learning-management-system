@@ -99,7 +99,7 @@ export default function LiveManagementPage() {
           </div>
           <button 
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-[2rem] font-black text-sm hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
+            className="flex items-center gap-2 bg-[#071739] text-white px-8 py-4 rounded-[2rem] font-black text-sm hover:opacity-90 transition-all shadow-xl shadow-slate-900/10"
           >
             <Plus size={20} />
             Schedule New Class
@@ -113,16 +113,22 @@ export default function LiveManagementPage() {
           ) : sessions.length > 0 ? (
             sessions.map(session => (
               <Card key={session._id} className="relative group overflow-hidden flex flex-col h-full border-slate-100">
-                <div className="h-3 bg-blue-600"></div>
+                <div className="h-3 bg-[#071739]"></div>
                 <div className="p-8 flex-1 flex flex-col">
                   <div className="flex justify-between items-start mb-6">
-                    <div className="p-4 bg-blue-50 text-blue-600 rounded-3xl">
+                    <div className="p-4 bg-slate-50 text-[#071739] rounded-3xl">
                        <Video size={24} />
                     </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                       Upcoming
-                    </div>
+                    {new Date(session.scheduledAt) < new Date() ? (
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest border border-rose-100">
+                           Outdated
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                           Upcoming
+                        </div>
+                    )}
                   </div>
                   
                   <h3 className="text-2xl font-bold text-slate-900 mb-2 leading-tight">{session.title}</h3>
@@ -142,14 +148,23 @@ export default function LiveManagementPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <a 
-                      href={session.meetingUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/10"
-                    >
-                      Join Meeting <ExternalLink size={14} />
-                    </a>
+                    {new Date(session.scheduledAt) < new Date() ? (
+                        <button 
+                          disabled
+                          className="flex-1 flex items-center justify-center gap-2 bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-xs uppercase tracking-widest cursor-not-allowed"
+                        >
+                          Session Ended
+                        </button>
+                    ) : (
+                        <a 
+                          href={session.meetingUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#071739] transition-all shadow-lg shadow-slate-900/10"
+                        >
+                          Join Meeting <ExternalLink size={14} />
+                        </a>
+                    )}
                     <button 
                       onClick={() => handleDelete(session._id)}
                       className="p-4 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
@@ -254,7 +269,7 @@ export default function LiveManagementPage() {
               <div className="pt-4 flex gap-4">
                 <button 
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
+                  className="flex-1 bg-[#071739] text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shadow-xl shadow-slate-900/20 active:scale-95"
                 >
                   Schedule Class Now
                 </button>

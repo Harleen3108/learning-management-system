@@ -1,22 +1,21 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import api from '@/services/api';
 import { 
     Users, 
     UserPlus, 
     Search, 
-    MoreVertical, 
     Shield, 
-    Mail, 
     Activity, 
     Ban, 
     Trash2, 
     Edit3, 
-    AlertCircle,
+    Eye,
     CheckCircle2,
-    ChevronDown,
-    Filter
+    RefreshCw,
+    Heart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -35,7 +34,15 @@ export default function UserManagement() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isLogOpen, setIsLogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
-    const [dropdownOpen, setDropdownOpen] = useState(null);
+    const router = useRouter();
+
+    const viewProfile = (user) => {
+        if (user.role === 'instructor') {
+            router.push(`/dashboard/admin/instructors/${user._id}`);
+        } else {
+            router.push(`/dashboard/admin/users/${user._id}`);
+        }
+    };
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -59,14 +66,17 @@ export default function UserManagement() {
     }, [activeTab, search]);
 
     const handleCreateUpdate = async (formData) => {
-        if (selectedUser) {
-            // Update
-            await api.put(`/admin/users/${selectedUser._id}`, formData);
-        } else {
-            // Create
-            await api.post('/admin/users', formData);
+        try {
+            if (selectedUser) {
+                await api.put(`/admin/users/${selectedUser._id}`, formData);
+            } else {
+                await api.post('/admin/users', formData);
+            }
+            fetchUsers();
+            setIsFormOpen(false);
+        } catch (err) {
+            console.error('Failed to save user:', err);
         }
-        fetchUsers();
     };
 
     const handleToggleStatus = async (user) => {
@@ -78,11 +88,11 @@ export default function UserManagement() {
         }
     };
 
-    const handleSoftDelete = async (userId) => {
-        if (confirm('Are you sure you want to deactivate this user? They will no longer be able to log in.')) {
+    const handleHardDelete = async (userId) => {
+        if (confirm('WARNING: This action is permanent and IRREVERSIBLE. Are you sure you want to PERMANENTLY DELETE this user?')) {
             try {
                 await api.delete(`/admin/users/${userId}`);
-                setUsers(users.map(u => u._id === userId ? { ...u, isActive: false } : u));
+                setUsers(users.filter(u => u._id !== userId));
             } catch (err) {
                 console.error('Failed to delete user:', err);
             }
@@ -91,24 +101,35 @@ export default function UserManagement() {
 
     return (
         <AdminLayout>
-            <div className="space-y-8 pb-20">
+            <div className="space-y-8 pb-20 max-w-[1600px] mx-auto">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800 tracking-tight">User Management</h1>
-                        <p className="text-slate-400 mt-1">Manage global access, roles, and monitor user behavior.</p>
+                        <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                            <Users className="text-[#071739]" size={32} />
+                            User Management
+                        </h1>
+                        <p className="text-slate-400 mt-1">Manage global access, roles, and monitor user behavior across the platform.</p>
                     </div>
-                    <button 
-                        onClick={() => { setSelectedUser(null); setIsFormOpen(true); }}
-                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-blue-100 group"
-                    >
-                        <UserPlus size={18} className="group-hover:scale-110 transition-transform" />
-                        Provision User
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={fetchUsers}
+                            className="p-4 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-[#071739] hover:border-[#071739]/20 transition-all shadow-sm"
+                        >
+                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                        </button>
+                        <button 
+                            onClick={() => { setSelectedUser(null); setIsFormOpen(true); }}
+                            className="flex items-center justify-center gap-2 bg-[#071739] hover:bg-[#020a1a] text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all shadow-lg shadow-slate-900/10 group"
+                        >
+                            <UserPlus size={18} className="group-hover:scale-110 transition-transform" />
+                            Provision User
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filters & Search */}
-                <div className="bg-white p-4 rounded-[2rem] border border-slate-200/50 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                <div className="bg-white p-5 rounded-[2.5rem] border border-slate-200/50 shadow-sm flex flex-col md:flex-row gap-6 items-center">
                     <div className="flex-1 w-full relative">
                         <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                         <input 
@@ -116,18 +137,18 @@ export default function UserManagement() {
                             placeholder="Search by name or email..." 
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all font-medium text-slate-600"
+                            className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.8rem] focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500/30 transition-all font-medium text-slate-600"
                         />
                     </div>
-                    <div className="flex gap-2 bg-slate-50 p-2 rounded-[1.5rem] border border-slate-100 w-full md:w-auto overflow-x-auto no-scrollbar">
+                    <div className="flex gap-2 bg-slate-100/50 p-2 rounded-[2rem] border border-slate-200/50 w-full md:w-auto overflow-x-auto no-scrollbar">
                         {roleTabs.map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={clsx(
-                                    "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all shrink-0",
+                                    "px-8 py-3 rounded-[1.2rem] text-xs font-bold uppercase tracking-widest transition-all shrink-0",
                                     activeTab === tab 
-                                        ? "bg-white text-blue-600 shadow-sm border border-slate-200" 
+                                        ? "bg-white text-[#071739] shadow-md border border-slate-200/50" 
                                         : "text-slate-400 hover:text-slate-600"
                                 )}
                             >
@@ -137,115 +158,158 @@ export default function UserManagement() {
                     </div>
                 </div>
 
-                {/* User List */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {loading ? (
-                        Array(6).fill(0).map((_, i) => (
-                            <div key={i} className="h-64 bg-slate-50 rounded-[2.5rem] animate-pulse border border-slate-100" />
-                        ))
-                    ) : users.length === 0 ? (
-                        <div className="col-span-full py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400">
-                            <span className="text-4xl">🔍</span>
-                            <p className="mt-4 font-bold">No users matches your criteria</p>
+                {/* Users Table */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-200/50 shadow-xl overflow-hidden relative">
+                    {loading && (
+                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="w-12 h-12 border-4 border-[#071739] border-t-transparent rounded-full animate-spin" />
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fetching Personnel...</p>
+                            </div>
                         </div>
-                    ) : (
-                        users.map((user) => (
-                            <motion.div 
-                                key={user._id}
-                                layout
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-white p-8 rounded-[2.5rem] border border-slate-200/50 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden"
-                            >
-                                <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <div className="relative">
-                                        <button 
-                                            onClick={() => setDropdownOpen(dropdownOpen === user._id ? null : user._id)}
-                                            className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all"
+                    )}
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/80 border-b border-slate-100">
+                                    <th className="px-8 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">S.No</th>
+                                    <th className="px-8 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Identity</th>
+                                    <th className="px-8 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Role</th>
+                                    <th className="px-8 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contact Info</th>
+                                    <th className="px-8 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
+                                    <th className="px-8 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {users.length === 0 && !loading ? (
+                                    <tr>
+                                        <td colSpan="6" className="py-24 text-center">
+                                            <div className="flex flex-col items-center gap-4 text-slate-300">
+                                                <Search size={48} strokeWidth={1} />
+                                                <p className="font-bold uppercase text-xs tracking-widest">No matching users found</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    users.map((user, index) => (
+                                        <motion.tr 
+                                            key={user._id}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: index * 0.03 }}
+                                            className="hover:bg-blue-50/30 transition-colors group"
                                         >
-                                            <MoreVertical size={20} className="text-slate-400" />
-                                        </button>
-                                        
-                                        <AnimatePresence>
-                                            {dropdownOpen === user._id && (
-                                                <motion.div 
-                                                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                                                    className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50"
-                                                >
+                                            <td className="px-8 py-5">
+                                                <span className="text-xs font-bold text-slate-400 tracking-tighter">
+                                                    {(index + 1).toString().padStart(2, '0')}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-11 h-11 rounded-2xl bg-slate-100 overflow-hidden border-2 border-white shadow-sm shrink-0 group-hover:scale-110 transition-transform">
+                                                        <img 
+                                                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`} 
+                                                            alt="" 
+                                                            className="w-full h-full object-cover" 
+                                                        />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-bold text-slate-800 truncate leading-tight">{user.name}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">ID: {user._id.slice(-6)}</p>
+                                                        
+                                                        {user.role === 'parent' && user.linkedStudents?.length > 0 && (
+                                                            <div className="mt-1.5 flex items-center gap-1">
+                                                                <Users size={10} className="text-[#071739]" />
+                                                                <p className="text-[9px] font-bold text-[#071739] uppercase tracking-tighter">
+                                                                    Child: {user.linkedStudents.map(s => s.name).join(', ')}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {user.role === 'student' && user.linkedParent && (
+                                                            <div className="mt-1.5 flex items-center gap-1 text-[#A68868]">
+                                                                <Heart size={10} fill="currentColor" />
+                                                                <p className="text-[9px] font-bold uppercase tracking-tighter">
+                                                                    Parent: {user.linkedParent.name}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={clsx(
+                                                        "p-1.5 rounded-lg",
+                                                        user.role === 'admin' ? "bg-rose-50 text-rose-500" :
+                                                        user.role === 'instructor' ? "bg-[#071739]/5 text-[#071739]" :
+                                                        "bg-slate-50 text-slate-500"
+                                                    )}>
+                                                        <Shield size={14} />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-slate-700 capitalize tracking-tight">{user.role}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-bold text-slate-600">{user.email}</p>
+                                                    {user.phone && <p className="text-[10px] font-bold text-slate-400 tracking-widest">{user.phone}</p>}
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="flex justify-center">
+                                                    <span className={clsx(
+                                                        "px-4 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest border transition-all",
+                                                        user.isActive 
+                                                            ? "bg-emerald-50 text-emerald-600 border-emerald-100 group-hover:bg-emerald-500 group-hover:text-white" 
+                                                            : "bg-rose-50 text-rose-500 border-rose-100 group-hover:bg-rose-500 group-hover:text-white"
+                                                    )}>
+                                                        {user.isActive ? 'Active' : 'Blocked'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center justify-end gap-2">
                                                     <button 
-                                                        onClick={() => { setSelectedUser(user); setIsLogOpen(true); setDropdownOpen(null); }}
-                                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-600 rounded-xl transition-all text-sm font-bold"
+                                                        onClick={() => viewProfile(user)}
+                                                        className="p-2.5 text-slate-400 hover:text-[#071739] hover:bg-[#071739]/5 rounded-xl transition-all"
+                                                        title="View Profile"
                                                     >
-                                                        <Activity size={18} className="text-blue-500" />
-                                                        Activity Logs
+                                                        <Eye size={18} />
                                                     </button>
                                                     <button 
-                                                        onClick={() => { handleToggleStatus(user); setDropdownOpen(null); }}
-                                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-600 rounded-xl transition-all text-sm font-bold"
+                                                        onClick={() => { setSelectedUser(user); setIsFormOpen(true); }}
+                                                        className="p-2.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                                                        title="Edit User"
                                                     >
-                                                        <Ban size={18} className="text-orange-500" />
-                                                        {user.isActive ? 'Suspend Access' : 'Restore Access'}
+                                                        <Edit3 size={18} />
                                                     </button>
-                                                    <div className="my-2 border-t border-slate-50" />
                                                     <button 
-                                                        onClick={() => { handleSoftDelete(user._id); setDropdownOpen(null); }}
-                                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-rose-50 text-rose-500 rounded-xl transition-all text-sm font-bold"
+                                                        onClick={() => handleToggleStatus(user)}
+                                                        className={clsx(
+                                                            "p-2.5 rounded-xl transition-all",
+                                                            user.isActive ? "text-slate-400 hover:text-rose-500 hover:bg-rose-50" : "text-emerald-500 hover:bg-emerald-50"
+                                                        )}
+                                                        title={user.isActive ? "Block User" : "Unblock User"}
+                                                    >
+                                                        <Ban size={18} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleHardDelete(user._id)}
+                                                        className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-xl transition-all"
+                                                        title="Delete User"
                                                     >
                                                         <Trash2 size={18} />
-                                                        Soft Delete
                                                     </button>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-16 h-16 rounded-[1.5rem] bg-slate-100 overflow-hidden relative">
-                                        <img src={`https://ui-avatars.com/api/?name=${user.name}&background=random`} alt="" className="w-full h-full object-cover" />
-                                        {!user.isActive && (
-                                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center">
-                                                <Ban size={20} className="text-white" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="text-xl font-black text-slate-800 truncate tracking-tight">{user.name}</h3>
-                                        <p className="text-sm font-medium text-slate-400 truncate">{user.email}</p>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4 mb-8">
-                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Rank</span>
-                                        <div className="flex items-center gap-2">
-                                            <Shield size={14} className="text-blue-600" />
-                                            <span className="text-sm font-black text-slate-700 capitalize">{user.role}</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</span>
-                                        <div className="flex items-center gap-2">
-                                            <div className={clsx("w-2 h-2 rounded-full", user.isActive ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-slate-300")} />
-                                            <span className={clsx("text-sm font-black capitalize", user.isActive ? "text-emerald-700" : "text-slate-400")}>
-                                                {user.isActive ? 'Operational' : 'Restricted'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button 
-                                    onClick={() => { setSelectedUser(user); setIsFormOpen(true); }}
-                                    className="w-full flex items-center justify-center gap-2 py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all hover:bg-blue-600 hover:shadow-xl hover:shadow-blue-200"
-                                >
-                                    <Edit3 size={16} />
-                                    Modify Profile
-                                </button>
-                            </motion.div>
-                        ))
-                    )}
+                                                </div>
+                                            </td>
+                                        </motion.tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

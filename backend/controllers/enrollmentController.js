@@ -56,12 +56,16 @@ exports.enrollCourse = async (req, res, next) => {
     }
 };
 
+const User = require('../models/User');
+const { linkParent } = require('../utils/parentLinker');
+const { sendParentNotification } = require('../services/notificationService');
+
 // @desc    Verify Payment & Confirm Enrollment
 // @route   POST /api/v1/enrollments/verify
 // @access  Private (Student)
 exports.verifyPayment = async (req, res, next) => {
     try {
-        const { courseId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+        const { courseId, razorpayOrderId, razorpayPaymentId, razorpaySignature, parentEmail, parentPhone, parentName } = req.body;
 
         const isValid = verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
 
@@ -77,12 +81,38 @@ exports.verifyPayment = async (req, res, next) => {
             orderId: razorpayOrderId
         });
 
+        // Get student and course details for notification
+        const student = await User.findById(req.user.id);
+        const course = await Course.findById(courseId);
+
+        // Link parent and notify
+        if (student.role === 'student') {
+            let parent = null;
+            if (student.linkedParent) {
+                parent = await User.findById(student.linkedParent);
+            } else if (parentEmail || parentPhone) {
+                parent = await linkParent(student, { email: parentEmail, phone: parentPhone, name: parentName });
+            }
+
+            if (parent) {
+                await sendParentNotification({
+                    parentName: parent.name,
+                    studentName: student.name,
+                    action: 'purchase',
+                    courseName: course.title,
+                    price: course.price,
+                    parentEmail: parent.email,
+                    password: 'pass123'
+                });
+            }
+        }
+
         // Log action
         await AuditLog.create({
             user: req.user.id,
             action: 'ENROLL_COURSE_PAID',
             resource: 'Course',
-            details: `Enrolled in paid course: ${courseId}`,
+            details: `Enrolled in paid course: ${course.title}`,
             entityId: enrollment._id
         });
 

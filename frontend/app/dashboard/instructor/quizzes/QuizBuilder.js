@@ -100,7 +100,7 @@ export default function QuizBuilder() {
                 <div className="lg:col-span-2 space-y-8">
                     <Card className="p-8">
                         <h3 className="font-bold text-slate-900 text-xl mb-8 flex items-center gap-3">
-                            <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs">1</span>
+                            <span className="w-8 h-8 rounded-full bg-slate-100 text-[#071739] flex items-center justify-center text-xs">1</span>
                             Quiz Essentials
                         </h3>
                         <div className="space-y-6">
@@ -108,7 +108,7 @@ export default function QuizBuilder() {
                                 <div>
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Select Course</label>
                                     <select 
-                                        className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 appearance-none"
+                                        className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#071739]/10 appearance-none"
                                         value={selectedCourse}
                                         onChange={(e) => fetchModules(e.target.value)}
                                     >
@@ -119,7 +119,7 @@ export default function QuizBuilder() {
                                 <div>
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Select Module</label>
                                     <select 
-                                        className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 appearance-none"
+                                        className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#071739]/10 appearance-none"
                                         value={selectedModule}
                                         onChange={(e) => setSelectedModule(e.target.value)}
                                         disabled={!selectedCourse}
@@ -145,12 +145,12 @@ export default function QuizBuilder() {
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
                             <h3 className="font-bold text-slate-900 text-xl flex items-center gap-3">
-                                <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs">2</span>
+                                <span className="w-8 h-8 rounded-full bg-slate-100 text-[#071739] flex items-center justify-center text-xs">2</span>
                                 Questions & Answers
                             </h3>
                             <button 
                                 onClick={addQuestion}
-                                className="flex items-center gap-2 text-blue-600 font-bold text-xs bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-100 transition-all"
+                                className="flex items-center gap-2 text-[#071739] font-bold text-xs bg-slate-50 px-4 py-2 rounded-xl hover:bg-slate-100 transition-all"
                             >
                                 <Plus size={16} /> Add Question
                             </button>
@@ -226,7 +226,7 @@ export default function QuizBuilder() {
                             <button 
                                 onClick={handleSaveQuiz}
                                 disabled={loading}
-                                className="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-2xl font-black text-sm transition-all shadow-xl shadow-blue-900/40 flex items-center justify-center gap-3 disabled:opacity-50"
+                                className="w-full py-4 bg-[#071739] hover:opacity-90 rounded-2xl font-black text-sm transition-all shadow-xl shadow-slate-900/40 flex items-center justify-center gap-3 disabled:opacity-50"
                             >
                                 {loading ? <Loader2 className="animate-spin" size={20}/> : <Save size={20}/>}
                                 Save Assessment

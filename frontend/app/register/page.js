@@ -3,25 +3,87 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { User, Users as UsersIcon, Mail, Lock, School, Check, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    User, 
+    Users as UsersIcon, 
+    Mail, 
+    Lock, 
+    Check, 
+    ArrowRight, 
+    Calendar, 
+    Phone, 
+    Heart, 
+    ArrowLeft,
+    ShieldCheck,
+    GraduationCap,
+    Chrome
+} from 'lucide-react';
 import { clsx } from 'clsx';
+import HomeNavbar from '@/components/HomeNavbar';
 
 export default function Register() {
+    const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
-        role: 'student' // default role
+        role: 'student',
+        dob: '',
+        phone: '',
+        parentName: '',
+        parentEmail: '',
+        parentPhone: ''
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
+    const nextStep = () => {
+        setError('');
+        if (step === 1 && !formData.role) {
+            setError('Please select your role first.');
+            return;
+        }
+        if (step === 2) {
+            if (!formData.email || !formData.password) {
+                setError('Email and Password are required.');
+                return;
+            }
+            if (formData.password.length < 8) {
+                setError('Password must be at least 8 characters.');
+                return;
+            }
+        }
+        if (step === 3) {
+            if (!formData.name || !formData.phone || !formData.dob) {
+                setError('All profile details are required.');
+                return;
+            }
+        }
+        setStep(step + 1);
+    };
+
+    const prevStep = () => setStep(step - 1);
+
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setLoading(true);
         setError('');
+
+        if (formData.role === 'student') {
+            if (!formData.parentName) {
+                setError('Parent Name is required.');
+                setLoading(false);
+                return;
+            }
+            if (!formData.parentEmail && !formData.parentPhone) {
+                setError('At least one Parent contact (Email or Phone) is required.');
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             await api.post('/auth/register', formData);
             router.push('/login');
@@ -32,227 +94,337 @@ export default function Register() {
         }
     };
 
+    const renderStepIndicator = () => (
+        <div className="flex items-center gap-2 mb-10 justify-center lg:justify-start">
+            {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center">
+                    <div className={clsx(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-500",
+                        step === i ? "bg-[#071739] text-white ring-4 ring-slate-100 shadow-lg" : 
+                        step > i ? "bg-[#A68868] text-white" : "bg-slate-100 text-slate-400"
+                    )}>
+                        {step > i ? <Check size={14} /> : i}
+                    </div>
+                    {i < 4 && <div className={clsx("w-8 h-[2px] mx-1", step > i ? "bg-[#A68868]" : "bg-slate-100")} />}
+                </div>
+            ))}
+        </div>
+    );
+
     return (
-        <div className="min-h-screen flex bg-white font-sans selection:bg-blue-100">
-            {/* Left Side - Info & Testimonial (Hidden on Mobile) */}
-            <motion.div 
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                className="hidden lg:flex flex-1 bg-blue-600 relative items-center justify-center p-12 overflow-hidden"
-            >
-                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-repeat shadow-inner" />
-                
-                <div className="relative z-10 w-full max-w-lg">
-                    <Link href="/" className="inline-flex items-center gap-2 mb-20 group">
-                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 font-black shadow-lg shadow-blue-500/50 group-hover:scale-110 transition-transform">E</div>
-                        <span className="text-2xl font-black text-white tracking-tight">EduFlow</span>
-                    </Link>
-
-                    <h2 className="text-6xl font-black text-white tracking-tight leading-[0.9] mb-8">
-                        Your journey to <br/> academic excellence <br/> <span className="text-blue-200 italic">starts here.</span>
-                    </h2>
-                    <p className="text-blue-100 text-lg font-medium leading-relaxed mb-16 max-w-md">
-                        Join over 50,000 students and parents who use EduFlow to streamline learning, track progress, and achieve more together.
-                    </p>
-
-                    {/* Testimonial Glass Card */}
-                    <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/20 text-white shadow-2xl">
-                        <div className="flex text-yellow-400 mb-4 gap-1">
-                            {[1,2,3,4,5].map(i => <Check key={i} size={16} fill="currentColor" />)}
-                        </div>
-                        <p className="text-lg font-medium leading-relaxed italic mb-6">
-                            "The Editorial Scholar design makes learning feel like a prestige experience. My daughter's grades improved by 30% in just one semester."
-                        </p>
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-slate-200 overflow-hidden border-2 border-white/20 shadow-sm">
-                                <img src="https://i.pravatar.cc/150?u=sarah" alt="" />
-                            </div>
-                            <div>
-                                <p className="font-bold">Sarah Jenkins</p>
-                                <p className="text-[10px] uppercase font-black text-blue-200 tracking-widest leading-none mt-1">Parent of 10th Grader</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Left Side Footer */}
-                <div className="absolute bottom-8 left-12 flex gap-8 text-[10px] font-black text-blue-200/50 uppercase tracking-widest">
-                    <span>© 2024 EDUFLOW</span>
-                    <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
-                    <Link href="#" className="hover:text-white transition-colors">Terms</Link>
-                </div>
-            </motion.div>
-
-            {/* Right Side - Registration Form */}
-            <div className="flex-[1.2] flex flex-col items-center justify-center p-6 md:p-12 lg:p-20 relative overflow-y-auto">
-                <div className="w-full max-w-lg">
-                    {/* Mobile Logo */}
-                    <Link href="/" className="lg:hidden flex items-center gap-2 mb-12 justify-center">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg">E</div>
-                        <span className="font-black text-slate-800 tracking-tight text-2xl">EduFlow</span>
-                    </Link>
-
-                    <div className="mb-10 text-center lg:text-left">
-                        <h1 className="text-4xl font-black text-slate-800 tracking-tight mb-2">Create your account</h1>
-                        <p className="text-slate-400 font-medium tracking-tight">Step 1: Choose your profile type to get personalized tools.</p>
+        <>
+            <HomeNavbar />
+            <div className="min-h-screen flex bg-white font-sans selection:bg-slate-100 pt-20">
+                {/* Left Side: Illustration & Branding */}
+                <div className="hidden lg:flex flex-1 bg-slate-50 relative flex-col items-center justify-center p-12 overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                        <div className="absolute -top-24 -left-24 w-96 h-96 bg-slate-200/50 rounded-full blur-3xl opacity-60 animate-pulse"></div>
+                        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#E3C39D]/20 rounded-full blur-3xl opacity-60 animate-pulse" style={{ animationDelay: '1s' }}></div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-8">
-                        {/* Role Selection Blocks */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div 
-                                onClick={() => setFormData({...formData, role: 'student'})}
-                                className={clsx(
-                                    "p-6 rounded-3xl border-2 transition-all cursor-pointer group relative",
-                                    formData.role === 'student' ? "bg-blue-50/50 border-blue-600 shadow-xl shadow-blue-100/50" : "bg-white border-slate-100 hover:border-slate-200"
-                                )}
-                            >
-                                <div className={clsx(
-                                    "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-all",
-                                    formData.role === 'student' ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-400 group-hover:scale-110"
-                                )}>
-                                    <User size={24} />
-                                </div>
-                                <h3 className="font-bold text-slate-800">I'm a Student</h3>
-                                <p className="text-[11px] text-slate-400 font-medium mt-1 leading-relaxed">Access courses, track grades, and connect with mentors.</p>
-                                {formData.role === 'student' && (
-                                    <div className="absolute top-4 right-4 text-blue-600">
-                                        <Check size={20} className="font-black" />
-                                    </div>
-                                )}
-                            </div>
-
-                            <div 
-                                onClick={() => setFormData({...formData, role: 'parent'})}
-                                className={clsx(
-                                    "p-6 rounded-3xl border-2 transition-all cursor-pointer group relative",
-                                    formData.role === 'parent' ? "bg-blue-50/50 border-blue-600 shadow-xl shadow-blue-100/50" : "bg-white border-slate-100 hover:border-slate-200"
-                                )}
-                            >
-                                <div className={clsx(
-                                    "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-all",
-                                    formData.role === 'parent' ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-400 group-hover:scale-110"
-                                )}>
-                                    <UsersIcon size={24} />
-                                </div>
-                                <h3 className="font-bold text-slate-800">I'm a Parent</h3>
-                                <p className="text-[11px] text-slate-400 font-medium mt-1 leading-relaxed">Monitor progress, manage payments, and support growth.</p>
-                                {formData.role === 'parent' && (
-                                    <div className="absolute top-4 right-4 text-blue-600">
-                                        <Check size={20} className="font-black" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {error && (
-                            <motion.div initial={{opacity:0}} animate={{opacity:1}} className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-sm font-medium">
-                                {error}
-                            </motion.div>
-                        )}
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    placeholder="Enter your name"
-                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-blue-600 transition-all font-medium text-slate-800"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                    <input
-                                        type="email"
-                                        required
-                                        placeholder="jane@example.com"
-                                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-blue-600 transition-all font-medium text-slate-800"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        className="relative z-10 w-full max-w-lg aspect-square flex items-center justify-center"
+                    >
+                        <div className="relative w-full h-full">
+                            <div className="absolute inset-0 bg-white rounded-full shadow-2xl border-8 border-slate-100 overflow-hidden flex items-center justify-center">
+                                <svg viewBox="0 0 400 400" className="w-full h-full p-12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="200" cy="200" r="160" fill="#f8fafc" />
+                                    <motion.path 
+                                        initial={{ pathLength: 0 }}
+                                        animate={{ pathLength: 1 }}
+                                        transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+                                        d="M100 200 C 100 100, 300 100, 300 200 S 100 300, 100 200" 
+                                        stroke="#071739" strokeWidth="2" strokeDasharray="10 10" opacity="0.2"
                                     />
-                                </div>
+                                    <g transform="translate(140, 140)">
+                                        <rect width="120" height="120" rx="20" fill="white" stroke="#071739" strokeWidth="4" />
+                                        <rect x="20" y="30" width="80" height="6" rx="3" fill="#071739" opacity="0.1" />
+                                        <rect x="20" y="50" width="60" height="6" rx="3" fill="#071739" opacity="0.05" />
+                                        <circle cx="90" cy="90" r="15" fill="#A68868" />
+                                        <path d="M85 90L88 93L95 86" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                                    </g>
+                                </svg>
                             </div>
                         </div>
+                    </motion.div>
 
-                        <div className="space-y-2">
-                             <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Set Password</label>
-                             <div className="relative">
-                                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                <input
-                                    type="password"
-                                    required
-                                    placeholder="••••••••"
-                                    className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-blue-600 transition-all font-medium text-slate-800"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                />
-                             </div>
-                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest px-1">Must be at least 8 characters with one number</p>
-                        </div>
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="mt-12 text-center relative z-10"
+                    >
+                        <h2 className="text-4xl font-bold text-slate-900 leading-tight mb-4">
+                            Unlock your <span className="text-[#071739]">Full Potential</span> <br/> with EduFlow.
+                        </h2>
+                        <p className="text-slate-500 font-normal max-w-sm mx-auto">
+                            Join a global community of learners and experts dedicated to mastery and growth.
+                        </p>
+                    </motion.div>
+                </div>
 
-                        <div className="space-y-2">
-                             <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Your School / Institution</label>
-                             <div className="relative">
-                                <School className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                <input
-                                    type="text"
-                                    placeholder="Search for school..."
-                                    className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-blue-600 transition-all font-medium text-slate-800"
-                                />
-                             </div>
-                        </div>
-
-                        <div className="flex items-start gap-3 px-1">
-                            <input type="checkbox" required className="w-5 h-5 mt-0.5 border-2 border-slate-200 rounded-lg appearance-none checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer" />
-                            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                                I agree to the <Link href="#" className="font-bold text-blue-600 hover:underline">Terms of Service</Link> and <Link href="#" className="font-bold text-blue-600 hover:underline">Privacy Policy</Link>. I understand EduFlow will process my data to provide educational services.
+                {/* Right Side: Step-Based Form */}
+                <div className="flex-[1.2] flex flex-col items-center justify-center p-8 bg-white z-40 overflow-y-auto min-h-screen">
+                    <div className="w-full max-w-[500px]">
+                        <div className="mb-10 text-center lg:text-left">
+                            {renderStepIndicator()}
+                            <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-3">
+                                {step === 1 ? 'Choose your path' : 
+                                 step === 2 ? 'Security first' :
+                                 step === 3 ? 'Personal details' : 'Almost there'}
+                            </h1>
+                            <p className="text-slate-500 font-normal">
+                                {step === 1 ? 'Select the role that fits your goals.' : 
+                                 step === 2 ? 'Create your secure account credentials.' :
+                                 step === 3 ? 'Tell us a bit about yourself.' : 
+                                 'Final steps to complete your registration.'}
                             </p>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-500/10 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 group"
-                        >
-                            {loading ? "Creating account..." : (
-                                <>
-                                    Create Account
-                                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                                </>
+                        <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+                            {error && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: -10 }} 
+                                    animate={{ opacity: 1, y: 0 }} 
+                                    className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-sm font-bold flex items-center gap-3"
+                                >
+                                    <ShieldCheck size={18} className="shrink-0" />
+                                    {error}
+                                </motion.div>
                             )}
-                        </button>
-                    </form>
 
-                    {/* Social Auth */}
-                    <div className="mt-12">
-                         <div className="flex items-center gap-4 mb-8">
-                            <div className="h-[1px] flex-1 bg-slate-100"></div>
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Or join with</span>
-                            <div className="h-[1px] flex-1 bg-slate-100"></div>
-                        </div>
-                        <div className="flex gap-4">
-                            <button className="flex-1 flex items-center justify-center gap-3 py-3.5 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all font-bold text-slate-600">
-                                <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="" />
-                                Google
-                            </button>
-                            <button className="flex-1 flex items-center justify-center gap-3 py-3.5 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all font-bold text-slate-600">
-                                <img src="https://appleid.cdn-apple.com/appleid/static/bin/cb12223847/images/favicon.ico" className="w-4 h-4" alt="" />
-                                Apple
-                            </button>
+                            <AnimatePresence mode="wait">
+                                {step === 1 && (
+                                    <motion.div 
+                                        key="step1"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                                    >
+                                        <div 
+                                            onClick={() => setFormData({...formData, role: 'student'})}
+                                            className={clsx(
+                                                "p-6 rounded-3xl border-2 transition-all cursor-pointer group relative",
+                                                formData.role === 'student' ? "bg-slate-50 border-[#071739] shadow-xl shadow-slate-200" : "bg-white border-slate-100 hover:border-slate-200"
+                                            )}
+                                        >
+                                            <div className={clsx(
+                                                "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-all",
+                                                formData.role === 'student' ? "bg-[#071739] text-white" : "bg-slate-100 text-slate-400"
+                                            )}>
+                                                <GraduationCap size={24} />
+                                            </div>
+                                            <h3 className="font-bold text-slate-900">Student</h3>
+                                            <p className="text-xs text-slate-500 mt-1">Learn & Grow</p>
+                                            {formData.role === 'student' && <div className="absolute top-4 right-4 text-[#071739]"><Check size={20} strokeWidth={3} /></div>}
+                                        </div>
+
+                                        <div 
+                                            onClick={() => setFormData({...formData, role: 'instructor'})}
+                                            className={clsx(
+                                                "p-6 rounded-3xl border-2 transition-all cursor-pointer group relative",
+                                                formData.role === 'instructor' ? "bg-slate-50 border-[#071739] shadow-xl shadow-slate-200" : "bg-white border-slate-100 hover:border-slate-200"
+                                            )}
+                                        >
+                                            <div className={clsx(
+                                                "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-all",
+                                                formData.role === 'instructor' ? "bg-[#071739] text-white" : "bg-slate-100 text-slate-400"
+                                            )}>
+                                                <UsersIcon size={24} />
+                                            </div>
+                                            <h3 className="font-bold text-slate-900">Instructor</h3>
+                                            <p className="text-xs text-slate-500 mt-1">Teach & Inspire</p>
+                                            {formData.role === 'instructor' && <div className="absolute top-4 right-4 text-[#071739]"><Check size={20} strokeWidth={3} /></div>}
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {step === 2 && (
+                                    <motion.div 
+                                        key="step2"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-4"
+                                    >
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Email Address</label>
+                                            <div className="relative group">
+                                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#071739]" size={18} />
+                                                <input 
+                                                    type="email" 
+                                                    required
+                                                    className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
+                                                    value={formData.email}
+                                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Password</label>
+                                            <div className="relative group">
+                                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#071739]" size={18} />
+                                                <input 
+                                                    type="password" 
+                                                    required
+                                                    className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
+                                                    value={formData.password}
+                                                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {step === 3 && (
+                                    <motion.div 
+                                        key="step3"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-4"
+                                    >
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Full Name</label>
+                                                <input 
+                                                    type="text" 
+                                                    required
+                                                    className="w-full px-5 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
+                                                    value={formData.name}
+                                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Phone</label>
+                                                <input 
+                                                    type="tel" 
+                                                    required
+                                                    className="w-full px-5 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
+                                                    value={formData.phone}
+                                                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Date of Birth</label>
+                                            <div className="relative group">
+                                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                                <input 
+                                                    type="date" 
+                                                    required
+                                                    className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
+                                                    value={formData.dob}
+                                                    onChange={(e) => setFormData({...formData, dob: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {step === 4 && (
+                                    <motion.div 
+                                        key="step4"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-4"
+                                    >
+                                        {formData.role === 'student' ? (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-2 text-[#A68868] mb-2">
+                                                    <Heart size={20} fill="currentColor" />
+                                                    <h4 className="text-xs font-bold uppercase tracking-widest">Parental Verification Required</h4>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Parent Name</label>
+                                                    <input 
+                                                        type="text" 
+                                                        required
+                                                        className="w-full px-5 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
+                                                        value={formData.parentName}
+                                                        onChange={(e) => setFormData({...formData, parentName: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Parent Email</label>
+                                                        <input 
+                                                            type="email" 
+                                                            className="w-full px-5 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
+                                                            value={formData.parentEmail}
+                                                            onChange={(e) => setFormData({...formData, parentEmail: e.target.value})}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Parent Phone</label>
+                                                        <input 
+                                                            type="tel" 
+                                                            className="w-full px-5 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
+                                                            value={formData.parentPhone}
+                                                            onChange={(e) => setFormData({...formData, parentPhone: e.target.value})}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="py-10 text-center space-y-4">
+                                                <div className="w-20 h-20 bg-slate-50 text-[#A68868] rounded-full flex items-center justify-center mx-auto">
+                                                    <Check size={40} strokeWidth={3} />
+                                                </div>
+                                                <h3 className="text-2xl font-bold text-slate-900">Ready to start!</h3>
+                                                <p className="text-slate-500 font-normal">Your instructor profile is ready for creation.</p>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <div className="flex gap-4 pt-6">
+                                {step > 1 && (
+                                    <button 
+                                        type="button"
+                                        onClick={prevStep}
+                                        className="flex-1 py-4 rounded-2xl border-2 border-slate-100 text-slate-500 font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <ArrowLeft size={18} />
+                                        Back
+                                    </button>
+                                )}
+                                {step < 4 ? (
+                                    <button 
+                                        type="button"
+                                        onClick={nextStep}
+                                        className="flex-[2] bg-[#071739] text-white py-4 rounded-2xl font-bold shadow-xl shadow-slate-900/10 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group"
+                                    >
+                                        Continue
+                                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                ) : (
+                                    <button 
+                                        type="button"
+                                        onClick={handleSubmit}
+                                        disabled={loading}
+                                        className="flex-[2] bg-[#071739] text-white py-4 rounded-2xl font-bold shadow-xl shadow-slate-900/10 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {loading ? 'Creating Account...' : 'Complete Registration'}
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+
+                        <div className="mt-10 text-center">
+                            <p className="text-sm font-normal text-slate-500">
+                                Already have an account? <Link href="/login" className="text-[#071739] font-bold hover:underline ml-1">Sign in here</Link>
+                            </p>
                         </div>
                     </div>
-
-                    <p className="mt-12 text-center text-sm font-medium text-slate-400">
-                        Already have an account? <Link href="/login" className="text-blue-600 font-black hover:underline ml-1">Sign in here</Link>
-                    </p>
                 </div>
             </div>
-        </div>
+        </>
     );
 }

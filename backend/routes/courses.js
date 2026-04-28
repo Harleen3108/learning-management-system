@@ -10,7 +10,10 @@ const {
     deleteCourse,
     getInstructorStudents,
     getLessonVideoUrl,
-    getUploadSignature
+    updateLessonFeedback,
+    getCourseAuditHistory,
+    getUploadSignature,
+    getTrendingCourses
 } = require('../controllers/courseController');
 
 // Include other resource routers
@@ -20,6 +23,8 @@ const { protect, authorize } = require('../middleware/auth');
 const { checkEnrollment } = require('../middleware/enrollmentMiddleware');
 
 const router = express.Router();
+
+router.get('/trending', getTrendingCourses);
 
 router.post('/upload-signature', protect, authorize('instructor', 'admin'), getUploadSignature);
 
@@ -34,6 +39,7 @@ router.get('/instructor/me', protect, authorize('instructor', 'admin'), getInstr
 router.get('/instructor-students', protect, authorize('instructor', 'admin'), getInstructorStudents);
 
 router.get('/:courseId/lessons/:lessonId/video', protect, checkEnrollment, getLessonVideoUrl);
+router.patch('/:courseId/lessons/:lessonId/feedback', protect, authorize('admin'), updateLessonFeedback);
 
 router.route('/:id')
     .get(protect, getCourse)
@@ -44,5 +50,7 @@ router.put('/:id/bulk-sync', protect, authorize('instructor', 'admin'), bulkSync
 
 router.route('/:id/status')
     .patch(protect, authorize('admin'), updateCourseStatus);
+
+router.get('/:id/audit-history', protect, getCourseAuditHistory);
 
 module.exports = router;

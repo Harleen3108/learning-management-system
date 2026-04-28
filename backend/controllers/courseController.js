@@ -31,14 +31,69 @@ exports.getUploadSignature = async (req, res, next) => {
     }
 };
 
-// @desc    Get all courses
+// @desc    Get all courses (with robust filtering)
 // @route   GET /api/v1/courses
 // @access  Public
 exports.getCourses = async (req, res, next) => {
     try {
-        const courses = await Course.find({ status: 'published' }).populate('instructor', 'name');
-        res.status(200).json({ success: true, count: courses.length, data: courses });
+        const { 
+            category, 
+            subcategory, 
+            difficulty, 
+            minPrice, 
+            maxPrice, 
+            rating, 
+            search,
+            sort
+        } = req.query;
+
+        // Build query
+        let queryObj = { status: 'published' };
+
+        if (category) queryObj.category = category;
+        if (subcategory) queryObj.subcategory = subcategory;
+        if (difficulty) queryObj.difficulty = difficulty;
+        
+        if (minPrice || maxPrice) {
+            queryObj.price = {};
+            if (minPrice) queryObj.price.$gte = Number(minPrice);
+            if (maxPrice) queryObj.price.$lte = Number(maxPrice);
+        }
+
+        if (rating) {
+            queryObj.averageRating = { $gte: Number(rating) };
+        }
+
+        if (search) {
+            queryObj.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // Execute query
+        let query = Course.find(queryObj)
+            .populate('instructor', 'name')
+            .populate('category', 'name')
+            .populate('subcategory', 'name');
+
+        // Sorting
+        if (sort) {
+            const sortBy = sort.split(',').join(' ');
+            query = query.sort(sortBy);
+        } else {
+            query = query.sort('-createdAt');
+        }
+
+        const courses = await query;
+
+        res.status(200).json({ 
+            success: true, 
+            count: courses.length, 
+            data: courses 
+        });
     } catch (err) {
+        console.error('getCourses error:', err);
         res.status(400).json({ success: false, message: err.message });
     }
 };
@@ -59,22 +114,24 @@ exports.getCourse = async (req, res, next) => {
                     { path: 'quizzes' }
                 ]
             })
-            .populate('instructor', 'name');
+            .populate('instructor', 'name')
+            .populate('category', 'name')
+            .populate('subcategory', 'name');
 
         if (!course) {
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
 
         // Check Access Permission (Enrolled, Instructor, or Admin)
-        const isInstructor = course.instructor._id.toString() === userId;
-        const isAdmin = req.user.role === 'admin' || req.user.role === 'super-admin';
+        const isInstructor = course.instructor?._id?.toString() === userId;
+        const isAdmin = req.user?.role === 'admin' || req.user?.role === 'super-admin';
         
         let isEnrolled = false;
         if (!isInstructor && !isAdmin) {
             const enrollment = await Enrollment.findOne({
                 student: userId,
                 course: courseId,
-                status: 'completed'
+                status: { $in: ['pending', 'completed'] }
             });
             isEnrolled = !!enrollment;
         }
@@ -116,18 +173,23 @@ exports.getLessonVideoUrl = async (req, res, next) => {
         }
 
         if (!lesson.videoPublicId) {
+            // Fallback for admins/instructors if publicId is missing but URL exists
+            if ((req.user.role === 'admin' || req.user.role === 'super-admin' || lesson.instructor?.toString() === req.user.id) && lesson.videoUrl) {
+                return res.status(200).json({ success: true, videoUrl: lesson.videoUrl });
+            }
             return res.status(400).json({ success: false, message: 'This lesson does not have a secure video ID' });
         }
 
-        // Generate Signed URL
-        const signedUrl = cloudinary.getSignedUrl(lesson.videoPublicId);
+        // Generate Signed URL with appropriate access type
+        const signedUrl = cloudinary.getSignedUrl(lesson.videoPublicId, lesson.videoAccessType || 'upload');
 
         res.status(200).json({
             success: true,
             videoUrl: signedUrl
         });
     } catch (err) {
-        res.status(400).json({ success: false, message: err.message });
+        console.error('Error in getLessonVideoUrl:', err);
+        res.status(400).json({ success: false, message: `Video fetch failed: ${err.message}` });
     }
 };
 
@@ -230,12 +292,12 @@ exports.updateCourseStatus = async (req, res, next) => {
         }
         await course.save();
 
-        // Log action
+        // Log action with feedback details
         await AuditLog.create({
             user: req.user.id,
             action: 'UPDATE_COURSE_STATUS',
             resource: 'Course',
-            details: `Updated course status: ${course.title} to ${course.status}`,
+            details: `Updated course status: ${course.title} to ${course.status}${req.body.feedback ? `. Feedback: ${req.body.feedback}` : ''}`,
             entityId: course._id
         });
 
@@ -294,18 +356,21 @@ exports.bulkSyncCourse = async (req, res, next) => {
             }
 
             // 3. Sync Lessons for this module
-            const lessonIdsInPayload = modData.lessons.map(l => l.id).filter(id => id.length > 20);
+            const lessonsInPayload = modData.lessons || [];
+            const lessonIdsInPayload = lessonsInPayload.map(l => l.id).filter(id => id && id.length > 20);
             await Lesson.deleteMany({ module: moduleId, _id: { $nin: lessonIdsInPayload } });
 
-            for (let j = 0; j < modData.lessons.length; j++) {
-                const lessonData = modData.lessons[j];
+            for (let j = 0; j < lessonsInPayload.length; j++) {
+                const lessonData = lessonsInPayload[j];
                 const isNewLesson = lessonData.id.length < 20;
                 const lessonPayload = {
                     title: lessonData.title,
                     videoUrl: lessonData.videoUrl,
                     videoPublicId: lessonData.videoPublicId,
+                    videoAccessType: lessonData.videoAccessType,
                     type: lessonData.type,
                     attachments: lessonData.attachments,
+                    feedback: lessonData.feedback,
                     order: j,
                     module: moduleId
                 };
@@ -491,5 +556,108 @@ exports.getInstructorStudents = async (req, res, next) => {
     }
 };
 
+// @desc    Update lesson feedback (Admin Review Flow)
+// @route   PATCH /api/v1/courses/:courseId/lessons/:lessonId/feedback
+// @access  Private (Admin)
+exports.updateLessonFeedback = async (req, res, next) => {
+    try {
+        const { lessonId } = req.params;
+        const { feedback } = req.body;
 
+        const lesson = await Lesson.findByIdAndUpdate(lessonId, { feedback }, {
+            new: true,
+            runValidators: true
+        });
 
+        if (!lesson) {
+            return res.status(404).json({ success: false, message: 'Lesson not found' });
+        }
+
+        res.status(200).json({ success: true, data: lesson });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+// @desc    Get course audit history
+// @route   GET /api/v1/courses/:id/audit-history
+// @access  Private (Admin/Instructor)
+exports.getCourseAuditHistory = async (req, res, next) => {
+    try {
+        const logs = await AuditLog.find({ 
+            resource: 'Course', 
+            entityId: req.params.id 
+        })
+        .populate('user', 'name role')
+        .sort('-timestamp');
+
+        res.status(200).json({
+            success: true,
+            count: logs.length,
+            data: logs
+        });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+// @desc    Get trending courses (Top 4 by revenue)
+// @route   GET /api/v1/courses/trending
+// @access  Public
+exports.getTrendingCourses = async (req, res, next) => {
+    try {
+        const trending = await Enrollment.aggregate([
+            { $group: { _id: '$course', totalRevenue: { $sum: '$amount' }, enrollments: { $sum: 1 } } },
+            { $sort: { totalRevenue: -1 } },
+            { $limit: 4 },
+            {
+                $lookup: {
+                    from: 'courses',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'courseInfo'
+                }
+            },
+            { $unwind: '$courseInfo' },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'courseInfo.instructor',
+                    foreignField: '_id',
+                    as: 'instructor'
+                }
+            },
+            { $unwind: '$instructor' },
+            {
+                $lookup: {
+                    from: 'categories',
+                    localField: 'courseInfo.category',
+                    foreignField: '_id',
+                    as: 'category'
+                }
+            },
+            { $unwind: '$category' }
+        ]);
+
+        let data;
+        if (trending.length > 0) {
+            data = trending.map(t => ({
+                ...t.courseInfo,
+                instructor: { _id: t.instructor._id, name: t.instructor.name },
+                category: { _id: t.category._id, name: t.category.name },
+                totalRevenue: t.totalRevenue,
+                enrollments: t.enrollments
+            }));
+        } else {
+            // Fallback: Get top 4 rated/latest courses if no sales data exists yet
+            data = await Course.find({ status: 'published' })
+                .sort('-averageRating -createdAt')
+                .limit(4)
+                .populate('instructor', 'name')
+                .populate('category', 'name');
+        }
+
+        res.status(200).json({ success: true, data });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+};

@@ -15,10 +15,24 @@ const courseSchema = new mongoose.Schema({
         required: [true, 'Please provide a price'],
         default: 0
     },
+    discountPrice: {
+        type: Number,
+        default: 0
+    },
     category: {
-        type: String,
+        type: mongoose.Schema.ObjectId,
+        ref: 'Category',
         required: [true, 'Please provide a category']
     },
+    subcategory: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'Category',
+        trim: true
+    },
+    topics: [{
+        type: String,
+        trim: true
+    }],
     difficulty: {
         type: String,
         enum: ['beginner', 'intermediate', 'advanced'],
@@ -30,8 +44,49 @@ const courseSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['draft', 'pending', 'published', 'rejected'],
+        enum: ['draft', 'pending', 'published', 'rejected', 'needs changes', 'archived'],
         default: 'draft'
+    },
+    submissionDate: Date,
+    reviewDeadline: Date,
+    qualityScores: {
+        completeness: { type: Number, default: 0 },
+        quality: { type: Number, default: 0 },
+        compliance: { type: Number, default: 0 }
+    },
+    checklist: {
+        titleQuality: { type: Boolean, default: false },
+        thumbnailQuality: { type: Boolean, default: false },
+        descriptionQuality: { type: Boolean, default: false },
+        curriculumQuality: { type: Boolean, default: false },
+        mediaQuality: { type: Boolean, default: false },
+        pricingValidity: { type: Boolean, default: false }
+    },
+    subtitle: {
+        type: String,
+        trim: true,
+        maxlength: [200, 'Subtitle cannot be more than 200 characters']
+    },
+    tagline: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'Tagline cannot be more than 100 characters']
+    },
+    whatYouWillLearn: [{
+        type: String,
+        trim: true
+    }],
+    requirements: [{
+        type: String,
+        trim: true
+    }],
+    targetAudience: [{
+        type: String,
+        trim: true
+    }],
+    language: {
+        type: String,
+        default: 'English'
     },
     feedback: {
         type: String,

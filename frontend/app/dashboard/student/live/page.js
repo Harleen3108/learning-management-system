@@ -76,14 +76,23 @@ export default function StudentLivePage() {
                                 </div>
                             </div>
 
-                            <a 
-                                href={session.meetingUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="w-full md:w-auto px-10 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-2"
-                            >
-                                Join Session <ExternalLink size={16} />
-                            </a>
+                            {new Date(session.scheduledAt) < new Date() ? (
+                                <button 
+                                    disabled
+                                    className="w-full md:w-auto px-10 py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    Outdated Session
+                                </button>
+                            ) : (
+                                <a 
+                                    href={session.meetingUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="w-full md:w-auto px-10 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-2"
+                                >
+                                    Join Session <ExternalLink size={16} />
+                                </a>
+                            )}
                         </Card>
                     ))}
                 </div>

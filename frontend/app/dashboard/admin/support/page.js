@@ -59,9 +59,9 @@ export default function SupportDesk() {
 
     const getPriorityStyle = (priority) => {
         switch (priority) {
-            case 'Urgent': return 'text-rose-600 font-black ring-1 ring-rose-200';
+            case 'Urgent': return 'text-rose-600 font-bold ring-1 ring-rose-200';
             case 'High': return 'text-amber-600 font-bold';
-            case 'Medium': return 'text-blue-600 font-bold';
+            case 'Medium': return 'text-[#071739] font-bold';
             default: return 'text-slate-500 font-medium';
         }
     };
@@ -71,7 +71,7 @@ export default function SupportDesk() {
             <div className="space-y-8">
                 <div className="flex justify-between items-end">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none mb-1">Support Command</h1>
+                        <h1 className="text-3xl font-bold text-slate-800 tracking-tight leading-none mb-1">Support Command</h1>
                         <p className="text-slate-400 font-medium italic">High-priority resolution center for all user transmissions.</p>
                     </div>
                     <button 
@@ -87,10 +87,10 @@ export default function SupportDesk() {
                 {stats && (
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         {[
-                            { label: 'Total Volume', value: stats.total, icon: LifeBuoy, color: 'blue' },
+                            { label: 'Total Volume', value: stats.total, icon: LifeBuoy, color: '[#071739]' },
                             { label: 'Active Alerts', value: stats.open, icon: AlertCircle, color: 'rose' },
                             { label: 'Resolved', value: stats.resolved, icon: CheckCircle2, color: 'emerald' },
-                            { label: 'Urgent Queue', value: stats.urgent, icon: ShieldAlert, color: 'indigo' }
+                            { label: 'Urgent Queue', value: stats.urgent, icon: ShieldAlert, color: '[#A68868]' }
                         ].map((stat, i) => (
                             <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm transition-all hover:-translate-y-1">
                                 <div className={clsx(
@@ -99,8 +99,8 @@ export default function SupportDesk() {
                                 )}>
                                     <stat.icon size={20} />
                                 </div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{stat.label}</p>
-                                <h4 className="text-2xl font-black text-slate-800 tracking-tight">{stat.value}</h4>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">{stat.label}</p>
+                                <h4 className="text-2xl font-bold text-slate-800 tracking-tight">{stat.value}</h4>
                             </div>
                         ))}
                     </div>
@@ -114,7 +114,7 @@ export default function SupportDesk() {
                             <input 
                                 type="text" 
                                 placeholder="Search Ticket ID or subject..." 
-                                className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-[#071739]/10 outline-none transition-all"
                                 value={filters.search}
                                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                                 onKeyDown={(e) => e.key === 'Enter' && fetchData()}
@@ -150,16 +150,16 @@ export default function SupportDesk() {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-slate-50/50">
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">User Context</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Transmission Node</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Priority</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Status</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right font-mono">ID</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">User Context</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Transmission Node</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Priority</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Status</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right font-mono">ID</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="5" className="px-8 py-20 text-center text-slate-400 font-black uppercase tracking-widest text-[10px] animate-pulse">Establishing uplink with support mainframe...</td></tr>
+                                    <tr><td colSpan="5" className="px-8 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px] animate-pulse">Establishing uplink with support mainframe...</td></tr>
                                 ) : tickets.length === 0 ? (
                                     <tr><td colSpan="5" className="px-8 py-20 text-center text-slate-400 font-bold italic tracking-tight text-sm">Clear frequency. No support requests detected.</td></tr>
                                 ) : (
@@ -171,7 +171,7 @@ export default function SupportDesk() {
                                                         <img src={`https://ui-avatars.com/api/?name=${ticket.user?.name}&background=random`} alt="" />
                                                     </div>
                                                     <div>
-                                                        <span className="text-sm font-black text-slate-800 tracking-tight leading-none block mb-1">{ticket.user?.name}</span>
+                                                        <span className="text-sm font-bold text-slate-800 tracking-tight leading-none block mb-1">{ticket.user?.name}</span>
                                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">{ticket.user?.role}</span>
                                                     </div>
                                                 </div>
@@ -180,7 +180,7 @@ export default function SupportDesk() {
                                                 <Link href={`/dashboard/admin/support/${ticket._id}`}>
                                                     <div className="flex flex-col max-w-xs group-hover:translate-x-1 transition-all">
                                                         <span className="text-[13px] font-bold text-slate-800 tracking-tight leading-tight mb-1 group-hover:underline">{ticket.subject}</span>
-                                                        <span className="text-[11px] font-bold text-blue-500 uppercase flex items-center gap-1 leading-none tracking-tight">
+                                                        <span className="text-[11px] font-bold text-[#A68868] uppercase flex items-center gap-1 leading-none tracking-tight">
                                                             <MessageSquare size={10} /> {ticket.category}
                                                         </span>
                                                     </div>
@@ -193,7 +193,7 @@ export default function SupportDesk() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <span className={clsx(
-                                                    "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border inline-block",
+                                                    "px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border inline-block",
                                                     getStatusStyle(ticket.status)
                                                 )}>
                                                     {ticket.status}
@@ -201,9 +201,9 @@ export default function SupportDesk() {
                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <div className="flex flex-col items-end gap-2">
-                                                    <span className="text-[10px] font-mono text-slate-300 font-black">#{ticket._id.slice(-6)}</span>
+                                                    <span className="text-[10px] font-mono text-slate-300 font-bold">#{ticket._id.slice(-6)}</span>
                                                     <Link href={`/dashboard/admin/support/${ticket._id}`}>
-                                                        <button className="text-blue-500 p-2 hover:bg-blue-50 rounded-lg transition-all" title="Enter Channel">
+                                                        <button className="text-[#071739] p-2 hover:bg-[#071739]/5 rounded-lg transition-all" title="Enter Channel">
                                                             <ArrowUpRight size={18} />
                                                         </button>
                                                     </Link>

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   CheckCircle2, 
@@ -16,17 +16,24 @@ import {
   ExternalLink,
   HelpCircle,
   Star,
-  Bookmark
+  Bookmark,
+  Linkedin,
+  Twitter,
+  Youtube,
+  Video
 } from 'lucide-react';
 import { Card } from '@/components/UIElements';
 import DashboardLayout from '@/components/DashboardLayout';
 import QuizTaker from '@/components/QuizTaker';
 import api from '@/services/api';
+import clsx from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LearningPage({ params }) {
   const videoRef = useRef(null);
   const [activeTab, setActiveTab] = useState('content');
   const [course, setCourse] = useState(null);
+  const [stats, setStats] = useState(null);
   const [activeItem, setActiveItem] = useState(null); // { type: 'video'|'quiz', data: object }
   const [loading, setLoading] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
@@ -42,6 +49,14 @@ export default function LearningPage({ params }) {
   const [allBookmarks, setAllBookmarks] = useState([]);
   const [noteContent, setNoteContent] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [expandedModules, setExpandedModules] = useState({});
+
+  const toggleModule = (moduleId) => {
+    setExpandedModules(prev => ({
+        ...prev,
+        [moduleId]: !prev[moduleId]
+    }));
+  };
 
   const fetchCourse = async () => {
     setLoading(true);
@@ -51,6 +66,20 @@ export default function LearningPage({ params }) {
       const courseData = res.data.data;
       setCourse(courseData);
       setIsEnrolled(res.data.isEnrolled);
+      
+      // Fetch Instructor Profile Stats
+      if (courseData.instructor?._id) {
+          api.get(`/instructors/${courseData.instructor._id}/profile`)
+            .then(iRes => {
+                setStats(iRes.data.data.stats);
+                // Merge full instructor data into course
+                setCourse(prev => ({
+                    ...prev,
+                    instructor: { ...prev.instructor, ...iRes.data.data.profile }
+                }));
+            })
+            .catch(e => console.warn('Instructor profile fetch failed'));
+      }
       
       // Fetch Progress if enrolled
       if (res.data.isEnrolled) {
@@ -94,6 +123,11 @@ export default function LearningPage({ params }) {
         setActiveItem({ type: 'video', data: courseData.modules[0].lessons[0], moduleTitle: courseData.modules[0].title });
       }
 
+      // Default expand the first module
+      if (courseData.modules?.[0]) {
+          setExpandedModules({ [courseData.modules[0]._id]: true });
+      }
+
       // Fetch Live Sessions
       try {
           const liveRes = await api.get(`/live-classes/course/${params.id}`);
@@ -102,7 +136,7 @@ export default function LearningPage({ params }) {
           console.warn('Could not fetch live classes');
       }
     } catch (err) {
-      if (err.response?.status === 403) {
+      if (err.response?.status === 403 || err.response?.status === 401) {
         setIsLocked(true);
       }
       console.error('Fetch course failed:', err);
@@ -319,6 +353,30 @@ export default function LearningPage({ params }) {
                    </div>
                  )}
               </div>
+            ) : activeItem?.type === 'pdf' ? (
+                <div className="w-full h-full bg-white flex flex-col">
+                    <div className="p-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h2 className="text-2xl font-black text-slate-900">{activeItem.data.name}</h2>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Module: {activeItem.moduleTitle}</p>
+                        </div>
+                        <a 
+                            href={activeItem.data.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
+                        >
+                            <Download size={16} /> Download File
+                        </a>
+                    </div>
+                    <div className="flex-1 bg-slate-800">
+                        <iframe 
+                            src={`${activeItem.data.url}#toolbar=0`} 
+                            className="w-full h-full border-none"
+                            title={activeItem.data.name}
+                        />
+                    </div>
+                </div>
             ) : (
               <Card className="bg-white min-h-[500px] rounded-[2.5rem] shadow-xl overflow-hidden border-none p-0 flex flex-col items-center justify-center border border-slate-100">
                 <QuizTaker 
@@ -375,7 +433,7 @@ export default function LearningPage({ params }) {
             {/* Tabs */}
             <div className="border-b border-slate-100 mt-10">
               <div className="flex gap-10">
-                {['content', 'notes', 'resources'].map(tab => (
+                {['content', 'notes'].map(tab => (
                   <button 
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -444,16 +502,68 @@ export default function LearningPage({ params }) {
                         </div>
                      </Card>
 
-                     <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-                        <h4 className="font-bold text-slate-900 uppercase text-[10px] tracking-widest">Instructor</h4>
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center font-black text-slate-400">
-                                {course.instructor?.name?.charAt(0)}
+                     <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-8">
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-bold text-slate-900 uppercase text-[10px] tracking-widest">Instructor</h4>
+                            <div className="flex gap-2">
+                                {course.instructor?.socialLinks?.linkedin && (
+                                    <a href={course.instructor.socialLinks.linkedin} target="_blank" className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-colors">
+                                        <Linkedin size={14} />
+                                    </a>
+                                )}
+                                {course.instructor?.socialLinks?.twitter && (
+                                    <a href={course.instructor.socialLinks.twitter} target="_blank" className="p-2 bg-slate-50 text-slate-400 hover:text-blue-400 rounded-xl transition-colors">
+                                        <Twitter size={14} />
+                                    </a>
+                                )}
+                                {course.instructor?.socialLinks?.youtube && (
+                                    <a href={course.instructor.socialLinks.youtube} target="_blank" className="p-2 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl transition-colors">
+                                        <Youtube size={14} />
+                                    </a>
+                                )}
                             </div>
-                           <div>
-                              <p className="font-black text-slate-900">{course.instructor?.name}</p>
-                              <p className="text-xs text-slate-400 font-bold">Expert Mentor</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                            <div className="w-20 h-20 bg-slate-100 rounded-2xl overflow-hidden shadow-lg border-2 border-white ring-1 ring-slate-100">
+                                <img 
+                                    src={course.instructor?.profilePhoto === 'no-photo.jpg' ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor?.name}` : course.instructor?.profilePhoto} 
+                                    alt="Instructor" 
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                           <div className="flex-1">
+                              <p className="font-black text-slate-900 text-lg leading-tight">{course.instructor?.name}</p>
+                              <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mt-1">
+                                {course.instructor?.instructorSpecialty || 'Expert Mentor'}
+                              </p>
                            </div>
+                        </div>
+
+                        {course.instructor?.instructorBio && (
+                            <p className="text-xs text-slate-500 font-medium leading-relaxed italic">
+                                "{course.instructor.instructorBio.slice(0, 150)}..."
+                            </p>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                            <div className="text-center p-3 bg-slate-50 rounded-2xl">
+                                <p className="text-lg font-black text-slate-900">{stats?.totalStudents || '1.2k+'}</p>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Students</p>
+                            </div>
+                            <div className="text-center p-3 bg-slate-50 rounded-2xl">
+                                <p className="text-lg font-black text-slate-900">{stats?.totalCourses || '12+'}</p>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Courses</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between px-2">
+                             <div className="flex items-center gap-1.5">
+                                 <Star size={14} className="text-orange-400 fill-orange-400" />
+                                 <span className="text-xs font-black text-slate-900">{stats?.averageRating || '4.8'}</span>
+                                 <span className="text-[10px] font-bold text-slate-400 uppercase">({stats?.totalReviews || '24'} Reviews)</span>
+                             </div>
+                             <ArrowRight size={14} className="text-slate-300" />
                         </div>
                      </div>
                   </div>
@@ -532,68 +642,114 @@ export default function LearningPage({ params }) {
              <div className="space-y-10">
                 {course.modules.map((mod, idx) => (
                   <div key={idx} className="space-y-4">
-                    <div className="flex justify-between items-center group cursor-pointer">
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{mod.title}</h4>
-                      <ChevronDown size={14} className="text-slate-300" />
+                    <div 
+                        onClick={() => toggleModule(mod._id)}
+                        className="flex justify-between items-center group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition-all"
+                    >
+                      <h4 className="text-[10px] font-black text-slate-400 group-hover:text-slate-600 uppercase tracking-[0.2em]">{mod.title}</h4>
+                      <ChevronDown size={14} className={clsx("text-slate-300 transition-transform", expandedModules[mod._id] && "rotate-180")} />
                     </div>
-                    <div className="space-y-2">
-                      {/* Lessons */}
-                      {mod.lessons.map((lesson) => (
-                        <div 
-                          key={lesson._id} 
-                          onClick={() => {
-                              setActiveItem({ 
-                                type: 'video', 
-                                data: lesson, 
-                                moduleTitle: mod.title,
-                                startTime: userProgress.find(p => p.lesson === lesson._id)?.lastWatchedTime || 0
-                              });
-                              setActiveTab('content');
-                          }}
-                          className={`group p-4 rounded-2xl flex items-center justify-between border transition-all cursor-pointer ${
-                            activeItem?.data?._id === lesson._id 
-                            ? 'bg-blue-50 border-blue-200' 
-                            : 'bg-white border-transparent hover:border-slate-100'
-                          }`}
+                    
+                    <AnimatePresence>
+                    {expandedModules[mod._id] && (
+                        <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="space-y-2 overflow-hidden"
                         >
-                          <div className="flex items-center gap-4">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
-                              activeItem?.data?._id === lesson._id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'
-                            }`}>
-                               {isLessonCompleted(lesson._id) ? <CheckCircle2 size={14} /> : <Play size={14} />}
-                            </div>
-                            <div>
-                               <p className={`text-[11px] font-black leading-tight ${activeItem?.data?._id === lesson._id ? 'text-blue-700' : 'text-slate-900'}`}>{lesson.title}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                          {/* Lessons */}
+                           {mod.lessons.map((lesson) => (
+                            <React.Fragment key={lesson._id}>
+                              <div 
+                                onClick={() => {
+                                    setActiveItem({ 
+                                      type: 'video', 
+                                      data: lesson, 
+                                      moduleTitle: mod.title,
+                                      startTime: userProgress.find(p => p.lesson === lesson._id)?.lastWatchedTime || 0
+                                    });
+                                    setActiveTab('content');
+                                }}
+                                className={`group p-4 rounded-2xl flex items-center justify-between border transition-all cursor-pointer ${
+                                  activeItem?.type === 'video' && activeItem?.data?._id === lesson._id 
+                                  ? 'bg-blue-50 border-blue-200' 
+                                  : 'bg-white border-transparent hover:border-slate-100'
+                                }`}
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                                    activeItem?.type === 'video' && activeItem?.data?._id === lesson._id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'
+                                  }`}>
+                                     {isLessonCompleted(lesson._id) ? <CheckCircle2 size={14} /> : <Play size={14} />}
+                                  </div>
+                                  <div className="flex-1">
+                                     <p className={`text-[11px] font-black leading-tight ${activeItem?.type === 'video' && activeItem?.data?._id === lesson._id ? 'text-blue-700' : 'text-slate-900'}`}>{lesson.title}</p>
+                                  </div>
+                                </div>
+                              </div>
 
-                      {/* Quizzes */}
-                      {mod.quizzes && mod.quizzes.map((quiz) => (
-                        <div 
-                          key={quiz._id} 
-                          onClick={() => setActiveItem({ type: 'quiz', data: quiz, moduleTitle: mod.title })}
-                          className={`group p-4 rounded-2xl flex items-center justify-between border transition-all cursor-pointer ${
-                            activeItem?.data?._id === quiz._id 
-                            ? 'bg-amber-50 border-amber-200' 
-                            : 'bg-white border-transparent hover:border-slate-100'
-                          }`}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
-                              activeItem?.data?._id === quiz._id ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-500'
-                            }`}>
-                               <HelpCircle size={14} />
+                              {/* Show attachments as separate items */}
+                              {lesson.attachments && lesson.attachments.map((att, aIdx) => (
+                                <div 
+                                    key={`${lesson._id}-att-${aIdx}`}
+                                    onClick={() => {
+                                        setActiveItem({
+                                            type: 'pdf',
+                                            data: att,
+                                            moduleTitle: mod.title
+                                        });
+                                        setActiveTab('content');
+                                    }}
+                                    className={`group ml-6 p-3 rounded-xl flex items-center justify-between border transition-all cursor-pointer ${
+                                        activeItem?.type === 'pdf' && activeItem?.data?.url === att.url
+                                        ? 'bg-blue-50 border-blue-100'
+                                        : 'bg-white border-transparent hover:border-slate-50'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] ${
+                                            activeItem?.type === 'pdf' && activeItem?.data?.url === att.url ? 'bg-blue-100 text-blue-600' : 'bg-slate-50 text-slate-400'
+                                        }`}>
+                                            <FileText size={12} />
+                                        </div>
+                                        <p className={`text-[10px] font-bold ${activeItem?.type === 'pdf' && activeItem?.data?.url === att.url ? 'text-blue-600' : 'text-slate-600'}`}>
+                                            {att.name || 'Resource PDF'}
+                                        </p>
+                                    </div>
+                                    <Download size={12} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+                                </div>
+                              ))}
+                            </React.Fragment>
+                          ))}
+    
+                          {/* Quizzes */}
+                          {mod.quizzes && mod.quizzes.map((quiz) => (
+                            <div 
+                              key={quiz._id} 
+                              onClick={() => setActiveItem({ type: 'quiz', data: quiz, moduleTitle: mod.title })}
+                              className={`group p-4 rounded-2xl flex items-center justify-between border transition-all cursor-pointer ${
+                                activeItem?.data?._id === quiz._id 
+                                ? 'bg-amber-50 border-amber-200' 
+                                : 'bg-white border-transparent hover:border-slate-100'
+                              }`}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                                  activeItem?.data?._id === quiz._id ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-500'
+                                }`}>
+                                   <HelpCircle size={14} />
+                                </div>
+                                <div>
+                                   <p className={`text-[11px] font-black leading-tight ${activeItem?.data?._id === quiz._id ? 'text-amber-700' : 'text-slate-900'}`}>{quiz.title}</p>
+                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{quiz.questions?.length || 0} Questions</p>
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                               <p className={`text-[11px] font-black leading-tight ${activeItem?.data?._id === quiz._id ? 'text-amber-700' : 'text-slate-900'}`}>{quiz.title}</p>
-                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{quiz.questions?.length || 0} Questions</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          ))}
+                        </motion.div>
+                    )}
+                    </AnimatePresence>
                   </div>
                 ))}
              </div>

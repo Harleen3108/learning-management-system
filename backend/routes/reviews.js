@@ -12,6 +12,8 @@ const router = express.Router({ mergeParams: true });
 
 const { protect, authorize } = require('../middleware/auth');
 
+router.get('/course/:courseId', getCourseReviews);
+
 router.get('/instructor/me', protect, authorize('instructor', 'admin'), getInstructorReviews);
 
 router
@@ -24,7 +26,5 @@ router
     .delete(protect, authorize('student', 'admin'), deleteReview);
 
 router.put('/:id/moderate', protect, authorize('admin'), moderateReview);
-
-module.exports = router;
 
 module.exports = router;

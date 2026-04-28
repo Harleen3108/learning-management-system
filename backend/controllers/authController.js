@@ -1,20 +1,48 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const { linkParent } = require('../utils/parentLinker');
+
+const { sendParentNotification } = require('../services/notificationService');
 
 // @desc    Register user
 // @route   POST /api/v1/auth/register
 // @access  Public
 exports.register = async (req, res, next) => {
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, dob, parentEmail, parentPhone, parentName } = req.body;
+
+        // Validation for students
+        if (role === 'student') {
+            if (!parentEmail && !parentPhone) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Parent Email or Phone Number is compulsory for student registration.'
+                });
+            }
+        }
 
         // Create user
         const user = await User.create({
             name,
             email,
             password,
-            role
+            role,
+            dob
         });
+
+        // Link parent if student
+        if (role === 'student') {
+            const parent = await linkParent(user, { email: parentEmail, phone: parentPhone, name: parentName });
+            
+            // Send notification to parent
+            await sendParentNotification({
+                parentName: parent.name,
+                studentName: user.name,
+                action: 'registration',
+                parentEmail: parent.email,
+                password: 'pass123'
+            });
+        }
 
         sendTokenResponse(user, 201, res);
     } catch (err) {
@@ -30,18 +58,43 @@ exports.register = async (req, res, next) => {
 // @access  Public
 exports.login = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, phone, parentName, studentName, studentDob } = req.body;
+        let user;
 
-        // Validate email & password
-        if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide an email and password'
+        // 1. Advanced Parent Login Logic
+        if (parentName && studentName && studentDob) {
+            const student = await User.findOne({ 
+                name: { $regex: new RegExp(`^${studentName}$`, 'i') }, 
+                dob: studentDob,
+                role: 'student'
             });
-        }
+            
+            if (!student || !student.linkedParent) {
+                return res.status(401).json({ success: false, message: 'Invalid student details provided.' });
+            }
+            
+            user = await User.findOne({ 
+                _id: student.linkedParent,
+                name: { $regex: new RegExp(`^${parentName}$`, 'i') }
+            }).select('+password');
+        } 
+        // 2. Standard Email/Phone Login
+        else {
+            const identifier = email || phone;
+            if (!identifier || !password) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Please provide Email/Phone and Password'
+                });
+            }
 
-        // Check for user
-        const user = await User.findOne({ email }).select('+password');
+            user = await User.findOne({ 
+                $or: [
+                    { email: identifier },
+                    { phone: identifier }
+                ]
+            }).select('+password');
+        }
 
         if (!user) {
             return res.status(401).json({

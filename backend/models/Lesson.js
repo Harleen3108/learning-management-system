@@ -12,11 +12,20 @@ const lessonSchema = new mongoose.Schema({
         required: [true, 'Please provide a video URL']
     },
     videoPublicId: String, // Added for secure signed URL generation
+    videoAccessType: {
+        type: String,
+        enum: ['upload', 'authenticated'],
+        default: 'upload'
+    },
     duration: Number, // in seconds
     attachments: [{
         name: String,
         url: String
     }],
+    feedback: {
+        type: String,
+        trim: true
+    },
     module: {
         type: mongoose.Schema.ObjectId,
         ref: 'Module',

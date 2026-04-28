@@ -34,11 +34,14 @@ exports.generateSignature = (paramsToSign) => {
 /**
  * Generate a signed URL for secure video streaming
  * @param {String} publicId 
+ * @param {String} type - 'upload' or 'authenticated'
  */
-exports.getSignedUrl = (publicId) => {
-    // Basic signed URL logic
-    return cloudinary.utils.private_download_url(publicId, 'mp4', {
+exports.getSignedUrl = (publicId, type = 'authenticated') => {
+    // Generate a signed URL with 1 hour expiration
+    return cloudinary.url(publicId, {
         resource_type: 'video',
-        expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+        type: type, 
+        sign_url: true,
+        expires_at: Math.floor(Date.now() / 1000) + 3600 // Valid for 1 hour
     });
 };

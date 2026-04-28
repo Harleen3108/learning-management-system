@@ -4,23 +4,49 @@
 
 @layer base {
   html {
-    font-size: 90.625%; /* 14.5px base scaling for 90% UI feel */
+    font-size: 93.75%; /* 15px base scaling for better readability */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-  :root {
-    --primary: #0047AB;
-    --primary-light: #E0E7FF;
-    --background: #FFFFFF;
-    --surface: #F8FAFC;
-    --text-main: #0F172A;
-    --text-muted: #64748B;
-    --accent: #F59E0B;
-  }
-}
 
-body {
-  background-color: var(--background);
-  color: var(--text-main);
-  @apply font-sans antialiased;
+  :root {
+    --primary: #071739;
+    --primary-light: #CDD5DB;
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --text-main: #071739;
+    --text-muted: #4B6382;
+    --accent: #A68868;
+    --accent-light: #E3C39D;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text-main);
+    font-family: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-weight: 400; /* Regular body text */
+    line-height: 1.6;
+    letter-spacing: -0.011em;
+    @apply antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight text-slate-900;
+    font-weight: 600; /* Standard headings */
+  }
+
+  h1 { font-size: 2.25rem; font-weight: 700; } /* Important titles */
+  
+  label {
+    @apply font-medium text-slate-700;
+    font-weight: 500;
+  }
+
+  .text-subtle {
+    @apply text-slate-500 font-light;
+    font-weight: 300; /* subtle labels / metadata */
+  }
 }
 
 @layer components {
@@ -29,11 +55,11 @@ body {
   }
   
   .btn-primary {
-    @apply bg-[#0047AB] hover:bg-[#003580] text-white font-bold py-4 px-8 rounded-2xl transition-all shadow-lg shadow-blue-900/10 active:scale-95 text-center;
+    @apply bg-[var(--primary)] hover:opacity-90 text-white font-medium py-4 px-8 rounded-2xl transition-all shadow-lg shadow-slate-900/10 active:scale-95 text-center;
   }
 
   .btn-secondary {
-    @apply bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 px-8 rounded-2xl transition-all active:scale-95 text-center;
+    @apply bg-[var(--accent)] hover:opacity-90 text-white font-medium py-4 px-8 rounded-2xl transition-all active:scale-95 text-center;
   }
 
   .glass-card {

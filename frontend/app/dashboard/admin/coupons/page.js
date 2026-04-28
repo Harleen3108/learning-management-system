@@ -78,12 +78,12 @@ export default function CouponManagement() {
             <div className="space-y-8">
                 <div className="flex justify-between items-end">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Coupon Management</h1>
+                        <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Coupon Management</h1>
                         <p className="text-slate-400 mt-1">Create and manage discount codes to drive platform growth.</p>
                     </div>
                     <button 
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 transition-all"
+                        className="flex items-center gap-2 bg-[#071739] hover:bg-[#020a1a] text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-slate-900/10 transition-all"
                     >
                         <Plus size={18} />
                         Create New Coupon
@@ -106,10 +106,10 @@ export default function CouponManagement() {
                                 <motion.div 
                                     layout
                                     key={coupon._id}
-                                    className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm group hover:shadow-xl hover:shadow-slate-200/50 transition-all border-l-8 border-l-blue-600"
+                                    className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm group hover:shadow-xl hover:shadow-slate-200/50 transition-all border-l-8 border-l-[#A68868]"
                                 >
                                     <div className="flex justify-between items-start mb-6">
-                                        <div className="bg-blue-50 text-blue-600 px-4 py-1 rounded-xl text-lg font-black tracking-widest font-mono">
+                                        <div className="bg-[#A68868]/10 text-[#A68868] px-4 py-1 rounded-xl text-lg font-bold tracking-widest font-mono">
                                             {coupon.code}
                                         </div>
                                         <button 
@@ -122,21 +122,21 @@ export default function CouponManagement() {
 
                                     <div className="space-y-4">
                                         <div className="flex items-baseline gap-1">
-                                            <h4 className="text-4xl font-black text-slate-800 tracking-tighter">
+                                            <h4 className="text-4xl font-bold text-slate-800 tracking-tighter">
                                                 {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}
                                             </h4>
                                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">OFF</span>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
                                             <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                                                     <Users size={12} /> Usage
                                                 </p>
                                                 <p className="text-sm font-bold text-slate-700">{coupon.usedCount} / {coupon.maxUses}</p>
                                             </div>
                                             <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                                                     <Clock size={12} /> Expiry
                                                 </p>
                                                 <p className={clsx("text-sm font-bold", isExpired ? "text-rose-500" : "text-slate-700")}>
@@ -145,8 +145,8 @@ export default function CouponManagement() {
                                             </div>
                                         </div>
 
-                                        <div className={clsx(
-                                            "mt-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-center",
+                                         <div className={clsx(
+                                            "mt-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest text-center",
                                             isExpired ? "bg-rose-50 text-rose-500" : "bg-emerald-50 text-emerald-600"
                                         )}>
                                             {isExpired ? 'Expired Promotion' : 'Live & Active'}
@@ -176,25 +176,24 @@ export default function CouponManagement() {
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
                             className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden p-10"
                         >
-                            <h2 className="text-2xl font-black text-slate-800 mb-6 tracking-tight">Create Coupon</h2>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-6 tracking-tight">Create Coupon</h2>
                             <form onSubmit={handleCreate} className="space-y-6">
                                 <div className="space-y-4">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Coupon Code</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Coupon Code</label>
                                     <input 
                                         required 
                                         type="text" 
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold tracking-widest uppercase focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold tracking-widest uppercase focus:ring-4 focus:ring-[#071739]/10 outline-none transition-all"
                                         placeholder="EX: SUMMER50"
                                         value={formData.code}
                                         onChange={e => setFormData({...formData, code: e.target.value})}
                                     />
                                 </div>
-                                
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-4">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Type</label>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Type</label>
                                         <select 
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-[#071739]/10 outline-none transition-all"
                                             value={formData.discountType}
                                             onChange={e => setFormData({...formData, discountType: e.target.value})}
                                         >
@@ -203,39 +202,39 @@ export default function CouponManagement() {
                                         </select>
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Value</label>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Value</label>
                                         <input 
                                             required 
                                             type="number" 
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-[#071739]/10 outline-none transition-all"
                                             value={formData.discountValue}
                                             onChange={e => setFormData({...formData, discountValue: e.target.value})}
                                         />
                                     </div>
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-4">
+i                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-4">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Max Uses</label>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Max Uses</label>
                                         <input 
                                             required 
                                             type="number" 
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-[#071739]/10 outline-none transition-all"
                                             value={formData.maxUses}
                                             onChange={e => setFormData({...formData, maxUses: e.target.value})}
                                         />
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Expiry Date</label>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Expiry Date</label>
                                         <input 
                                             required 
                                             type="date" 
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-[#071739]/10 outline-none transition-all"
                                             value={formData.expiresAt}
                                             onChange={e => setFormData({...formData, expiresAt: e.target.value})}
                                         />
                                     </div>
                                 </div>
+iv>
 
                                 <div className="flex gap-4 pt-4">
                                     <button 
@@ -247,7 +246,7 @@ export default function CouponManagement() {
                                     </button>
                                     <button 
                                         type="submit" 
-                                        className="flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all hover:scale-[1.02]"
+                                        className="flex-[2] bg-[#071739] text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-[#020a1a] transition-all hover:scale-[1.02]"
                                     >
                                         Generate Coupon
                                     </button>

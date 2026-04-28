@@ -55,7 +55,7 @@ export default function ContentMonitoring() {
             <div className="space-y-8">
                 <div className="flex justify-between items-end">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none mb-1">Content Monitor</h1>
+                        <h1 className="text-3xl font-bold text-slate-800 tracking-tight leading-none mb-1">Content Monitor</h1>
                         <p className="text-slate-400 font-medium italic">Holistic oversight of all curriculum nodes across the platform.</p>
                     </div>
                     <button 
@@ -70,32 +70,32 @@ export default function ContentMonitoring() {
                 {/* System Ledger Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
-                        <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600">
+                        <div className="w-14 h-14 bg-[#071739]/5 rounded-2xl flex items-center justify-center text-[#071739]">
                             <PlayCircle size={28} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Total Lessons</p>
-                            <h4 className="text-2xl font-black text-slate-800 tracking-tight">{lessons.length}</h4>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">Total Lessons</p>
+                            <h4 className="text-2xl font-bold text-slate-800 tracking-tight">{lessons.length}</h4>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
-                        <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
+                        <div className="w-14 h-14 bg-[#A68868]/10 rounded-2xl flex items-center justify-center text-[#A68868]">
                             <Folder size={28} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Unique Modules</p>
-                            <h4 className="text-2xl font-black text-slate-800 tracking-tight">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">Unique Modules</p>
+                            <h4 className="text-2xl font-bold text-slate-800 tracking-tight">
                                 {[...new Set(lessons.map(l => l.module?._id))].length}
                             </h4>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
-                        <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
+                        <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-600">
                             <BookOpen size={28} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Parent Courses</p>
-                            <h4 className="text-2xl font-black text-slate-800 tracking-tight">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-2">Parent Courses</p>
+                            <h4 className="text-2xl font-bold text-slate-800 tracking-tight">
                                 {[...new Set(lessons.map(l => l.module?.course?._id))].length}
                             </h4>
                         </div>
@@ -110,7 +110,7 @@ export default function ContentMonitoring() {
                             <input 
                                 type="text" 
                                 placeholder="Search by lesson title or course..." 
-                                className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-[#071739]/10 outline-none transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -121,16 +121,16 @@ export default function ContentMonitoring() {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-slate-50/50">
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Lesson Node</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Parent Course / Module</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Duration</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Status</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Actions</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Lesson Node</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Parent Course / Module</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Duration</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Status</th>
+                                    <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="5" className="px-8 py-20 text-center text-slate-400 font-black uppercase tracking-widest text-[10px] animate-pulse">Scanning production servers for curriculum nodes...</td></tr>
+                                    <tr><td colSpan="5" className="px-8 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px] animate-pulse">Scanning production servers for curriculum nodes...</td></tr>
                                 ) : filteredContent.length === 0 ? (
                                     <tr><td colSpan="5" className="px-8 py-20 text-center text-slate-400 font-bold italic tracking-tight">No content matches found.</td></tr>
                                 ) : (
@@ -142,15 +142,15 @@ export default function ContentMonitoring() {
                                                         <PlayCircle size={20} />
                                                     </div>
                                                     <div>
-                                                        <span className="text-sm font-black text-slate-800 tracking-tight leading-none block mb-1">{item.title}</span>
+                                                        <span className="text-sm font-bold text-slate-800 tracking-tight leading-none block mb-1">{item.title}</span>
                                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">{item.type || 'video'}</span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[11px] font-black text-slate-800 tracking-tight leading-none mb-1">{item.module?.course?.title}</span>
-                                                    <span className="text-[10px] font-bold text-blue-500 uppercase flex items-center gap-1">
+                                                    <span className="text-[11px] font-bold text-slate-800 tracking-tight leading-none mb-1">{item.module?.course?.title}</span>
+                                                    <span className="text-[10px] font-bold text-[#A68868] uppercase flex items-center gap-1">
                                                         <Folder size={10} /> {item.module?.title}
                                                     </span>
                                                 </div>
@@ -163,7 +163,7 @@ export default function ContentMonitoring() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <span className={clsx(
-                                                    "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border inline-block",
+                                                    "px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border inline-block",
                                                     item.status !== 'flagged' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
                                                 )}>
                                                     {item.status || 'Active'}
@@ -171,7 +171,7 @@ export default function ContentMonitoring() {
                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <button className="p-3 bg-slate-100 text-slate-400 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-xl transition-all" title="Preview Content">
+                                                    <button className="p-3 bg-slate-100 text-slate-400 hover:bg-white hover:text-[#071739] hover:shadow-sm rounded-xl transition-all" title="Preview Content">
                                                         <ArrowUpRight size={18} />
                                                     </button>
                                                     <button className="p-3 bg-slate-100 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition-all" title="Flag as Inappropriate">

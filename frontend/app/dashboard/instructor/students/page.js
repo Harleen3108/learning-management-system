@@ -67,11 +67,11 @@ export default function StudentManagementPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {stats.map((stat, i) => (
             <Card key={i} className="p-8 border-slate-100 shadow-sm flex items-center gap-6">
-               <div className={`w-16 h-16 rounded-3xl bg-${stat.color}-50 text-${stat.color}-600 flex items-center justify-center`}>
+               <div className={`w-16 h-16 rounded-3xl bg-${stat.color === 'blue' ? '[#071739]/10' : stat.color + '-50'} text-${stat.color === 'blue' ? '[#071739]' : stat.color + '-600'} flex items-center justify-center`}>
                   <stat.icon size={28} />
                </div>
                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                  <p className="text-[10px] font-black text-[#071739] uppercase tracking-widest mb-1">{stat.label}</p>
                   <p className="text-3xl font-black text-slate-900">{stat.value}</p>
                </div>
             </Card>
@@ -85,7 +85,7 @@ export default function StudentManagementPage() {
             <input 
               type="text" 
               placeholder="Search by student name or email..."
-              className="w-full bg-white border border-slate-100 py-4 pl-12 pr-4 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-blue-600/5 transition-all"
+              className="w-full bg-white border border-slate-100 py-4 pl-12 pr-4 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-[#071739]/5 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -127,11 +127,11 @@ export default function StudentManagementPage() {
                     <tr key={item._id} className="hover:bg-slate-50/30 transition-colors group">
                       <td className="p-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 text-[#071739] flex items-center justify-center font-black text-xs">
                              {item.student.name.charAt(0)}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{item.student.name}</p>
+                            <p className="text-sm font-bold text-slate-900 group-hover:text-[#071739] transition-colors">{item.student.name}</p>
                             <p className="text-[11px] text-slate-400 font-medium">{item.student.email}</p>
                           </div>
                         </div>
@@ -151,7 +151,7 @@ export default function StudentManagementPage() {
                               <div 
                                 className={clsx(
                                   "h-full rounded-full transition-all duration-1000",
-                                  item.progress.percentage === 100 ? "bg-emerald-500" : "bg-blue-600"
+                                  item.progress.percentage === 100 ? "bg-emerald-500" : "bg-[#071739]"
                                 )}
                                 style={{ width: `${item.progress.percentage}%` }}
                               ></div>

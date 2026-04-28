@@ -6,6 +6,13 @@ const Certificate = require('../models/Certificate');
 const Coupon = require('../models/Coupon');
 const PaymentLog = require('../models/PaymentLog');
 const Review = require('../models/Review');
+const LiveClass = require('../models/LiveClass');
+const Quiz = require('../models/Quiz');
+const Module = require('../models/Module');
+const Result = require('../models/Result');
+const Progress = require('../models/Progress');
+const Ticket = require('../models/Ticket');
+const mongoose = require('mongoose');
 
 // @desc    Get all reviews aggregate stats
 // @route   GET /api/v1/admin/reviews/stats
@@ -91,7 +98,10 @@ exports.getUsers = async (req, res, next) => {
             query.name = { $regex: search, $options: 'i' };
         }
 
-        const users = await User.find(query).sort('-createdAt');
+        const users = await User.find(query)
+            .populate('linkedStudents', 'name email')
+            .populate('linkedParent', 'name email')
+            .sort('-createdAt');
 
         res.status(200).json({
             success: true,
@@ -108,21 +118,37 @@ exports.getUsers = async (req, res, next) => {
 // @access  Private (Admin)
 exports.updateUser = async (req, res, next) => {
     try {
-        const user = await User.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true
-        });
+        let user = await User.findById(req.params.id);
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
+
+        // Handle password update if provided
+        if (req.body.password && req.body.password.trim() !== '') {
+            user.password = req.body.password;
+        }
+
+        // Update other fields
+        if (req.body.name) user.name = req.body.name;
+        if (req.body.role) user.role = req.body.role;
+        if (req.body.phone) user.phone = req.body.phone;
+        if (req.body.isActive !== undefined) user.isActive = req.body.isActive;
+        
+        // Instructor fields
+        if (req.body.instructorBio) user.instructorBio = req.body.instructorBio;
+        if (req.body.instructorSpecialty) user.instructorSpecialty = req.body.instructorSpecialty;
+        if (req.body.profilePhoto) user.profilePhoto = req.body.profilePhoto;
+        if (req.body.socialLinks) user.socialLinks = req.body.socialLinks;
+
+        await user.save();
 
         // Log action
         await AuditLog.create({
             user: req.user.id,
             action: 'UPDATE_USER',
             resource: 'User',
-            details: `Updated user ${user.email}`,
+            details: `Updated user ${user.email}${req.body.password ? ' including password reset' : ''}`,
             entityId: user._id
         });
 
@@ -132,19 +158,27 @@ exports.updateUser = async (req, res, next) => {
     }
 };
 
+const { linkParent } = require('../utils/parentLinker');
+
 // @desc    Create user
 // @route   POST /api/v1/admin/users
 // @access  Private (Admin)
 exports.createUser = async (req, res, next) => {
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, dob, parentEmail, parentPhone, parentName } = req.body;
 
         const user = await User.create({
             name,
             email,
             password: password || 'Welcome123!', // Default password
-            role: role || 'student'
+            role: role || 'student',
+            dob
         });
+
+        // Link parent if student
+        if (user.role === 'student' && (parentEmail || parentPhone)) {
+            await linkParent(user, { email: parentEmail, phone: parentPhone, name: parentName });
+        }
 
         // Log action
         await AuditLog.create({
@@ -161,7 +195,7 @@ exports.createUser = async (req, res, next) => {
     }
 };
 
-// @desc    Soft delete user
+// @desc    Hard delete user
 // @route   DELETE /api/v1/admin/users/:id
 // @access  Private (Admin)
 exports.deleteUser = async (req, res, next) => {
@@ -172,19 +206,18 @@ exports.deleteUser = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        user.isActive = false;
-        await user.save();
+        await User.findByIdAndDelete(req.params.id);
 
         // Log action
         await AuditLog.create({
             user: req.user.id,
-            action: 'DELETE_USER',
+            action: 'HARD_DELETE_USER',
             resource: 'User',
             resourceId: user._id,
-            details: `Soft deleted user ${user.email}`
+            details: `Permanently deleted user ${user.email}`
         });
 
-        res.status(200).json({ success: true, message: 'User deactivated successfully' });
+        res.status(200).json({ success: true, message: 'User permanently deleted' });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
     }
@@ -359,6 +392,7 @@ exports.getInstructors = async (req, res, next) => {
                     instructorStatus: 1,
                     instructorSpecialty: 1,
                     instructorBio: 1,
+                    phone: 1,
                     createdAt: 1,
                     courseCount: { $size: '$courses' },
                     studentCount: { $size: '$enrollments' },
@@ -372,6 +406,183 @@ exports.getInstructors = async (req, res, next) => {
             success: true,
             count: instructors.length,
             data: instructors
+        });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+// @desc    Get single instructor full profile/analytics
+// @route   GET /api/v1/admin/instructors/:id
+// @access  Private (Admin)
+exports.getInstructorProfile = async (req, res, next) => {
+    try {
+        const instructorId = new mongoose.Types.ObjectId(req.params.id);
+
+        // 1. Basic profile
+        const instructor = await User.findById(instructorId).select('-password');
+        if (!instructor || (instructor.role !== 'instructor' && instructor.role !== 'admin')) {
+            return res.status(404).json({ success: false, message: 'Instructor not found' });
+        }
+
+        // 2. Courses with per-course enrollment count & revenue
+        const courses = await Course.aggregate([
+            { $match: { instructor: instructorId, isActive: { $ne: false } } },
+            {
+                $lookup: {
+                    from: 'enrollments',
+                    localField: '_id',
+                    foreignField: 'course',
+                    as: 'enrollments'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'reviews',
+                    localField: '_id',
+                    foreignField: 'course',
+                    as: 'reviews'
+                }
+            },
+            {
+                $addFields: {
+                    enrollmentCount: { $size: '$enrollments' },
+                    revenue: {
+                        $sum: {
+                            $map: {
+                                input: '$enrollments',
+                                as: 'e',
+                                in: { $ifNull: ['$$e.amount', 0] }
+                            }
+                        }
+                    },
+                    avgRating: { $avg: '$reviews.rating' },
+                    reviewCount: { $size: '$reviews' }
+                }
+            },
+            { $project: { enrollments: 0, reviews: 0 } },
+            { $sort: { createdAt: -1 } }
+        ]);
+
+        // 3. Aggregate totals
+        const totalStudents = courses.reduce((s, c) => s + c.enrollmentCount, 0);
+        const totalRevenue = courses.reduce((s, c) => s + c.revenue, 0);
+        const avgRating = courses.length
+            ? (courses.reduce((s, c) => s + (c.avgRating || 0), 0) / courses.filter(c => c.avgRating).length || 0)
+            : 0;
+
+        // 4. Reviews for instructor's courses
+        const courseIds = courses.map(c => c._id);
+        const reviews = await Review.find({ course: { $in: courseIds } })
+            .populate('student', 'name')
+            .populate('course', 'title')
+            .sort('-createdAt')
+            .limit(20);
+
+        // 5. Activity logs (admin actions on this instructor + instructor's own resource logs)
+        const activityLogs = await AuditLog.find({
+            $or: [
+                { entityId: instructorId.toString() },
+                { resourceId: instructorId.toString() },
+                { user: instructorId }
+            ]
+        })
+            .populate('user', 'name role')
+            .sort('-timestamp')
+            .limit(30);
+
+        // 6. Live classes
+        const liveClasses = await LiveClass.find({ instructor: instructorId })
+            .populate('course', 'title')
+            .sort('-scheduledAt')
+            .limit(10);
+
+        // 7. Quiz stats via modules belonging to instructor's courses
+        const modules = await Module.find({ course: { $in: courseIds } }).select('_id');
+        const moduleIds = modules.map(m => m._id);
+        const quizzes = await Quiz.find({ module: { $in: moduleIds } }).select('_id passingScore');
+        const quizIds = quizzes.map(q => q._id);
+        const results = await Result.find({ quiz: { $in: quizIds } });
+        const totalAttempts = results.length;
+        const avgScore = totalAttempts ? (results.reduce((s, r) => s + r.score, 0) / totalAttempts) : 0;
+        const passRate = totalAttempts ? (results.filter(r => r.passed).length / totalAttempts) * 100 : 0;
+
+        // 8. Student engagement – active students (have progress records)
+        const activeStudentIds = await Progress.distinct('student', { course: { $in: courseIds } });
+        const completedEnrollments = await Enrollment.countDocuments({
+            course: { $in: courseIds },
+            status: 'completed'
+        });
+        const completionRate = totalStudents > 0 ? (completedEnrollments / totalStudents) * 100 : 0;
+
+        // 9. Monthly revenue trend (last 12 months)
+        const twelveMonthsAgo = new Date();
+        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
+        twelveMonthsAgo.setDate(1);
+        twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+        const monthlyRevenue = await Enrollment.aggregate([
+            {
+                $match: {
+                    course: { $in: courseIds },
+                    enrolledAt: { $gte: twelveMonthsAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$enrolledAt' },
+                        month: { $month: '$enrolledAt' }
+                    },
+                    revenue: { $sum: { $ifNull: ['$amount', 0] } },
+                    enrollments: { $sum: 1 }
+                }
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } }
+        ]);
+
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const revenueTrend = monthlyRevenue.map(m => ({
+            month: `${monthNames[m._id.month - 1]} ${m._id.year}`,
+            revenue: m.revenue,
+            enrollments: m.enrollments
+        }));
+
+        // 10. Content flags / reported issues
+        const flaggedReviews = reviews.filter(r => r.status === 'flagged');
+
+        res.status(200).json({
+            success: true,
+            data: {
+                profile: instructor,
+                overview: {
+                    totalCourses: courses.length,
+                    totalStudents,
+                    totalRevenue,
+                    avgRating: parseFloat(avgRating.toFixed(1)) || 0
+                },
+                courses,
+                studentEngagement: {
+                    totalStudents,
+                    activeStudents: activeStudentIds.length,
+                    completionRate: parseFloat(completionRate.toFixed(1))
+                },
+                revenue: {
+                    total: totalRevenue,
+                    trend: revenueTrend,
+                    perCourse: courses.map(c => ({ title: c.title, revenue: c.revenue, enrollments: c.enrollmentCount }))
+                },
+                reviews,
+                liveClasses,
+                quizStats: {
+                    totalQuizzes: quizzes.length,
+                    totalAttempts,
+                    avgScore: parseFloat(avgScore.toFixed(1)),
+                    passRate: parseFloat(passRate.toFixed(1))
+                },
+                activityLogs,
+                flaggedContent: flaggedReviews
+            }
         });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
@@ -532,6 +743,124 @@ exports.getContentMonitoring = async (req, res, next) => {
             success: true, 
             count: lessons.length, 
             data: lessons 
+        });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+// @desc    Get detailed user profile/analytics (Student/Parent)
+// @route   GET /api/v1/admin/users/:id/analytics
+// @access  Private (Admin)
+exports.getUserAnalytics = async (req, res, next) => {
+    try {
+        const userId = new mongoose.Types.ObjectId(req.params.id);
+
+        // 1. Basic profile + Linked Students (if parent)
+        const user = await User.findById(userId)
+            .select('-password')
+            .populate('linkedStudents', 'name email role isActive');
+        
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // 2. Find Parents (if student)
+        let linkedParents = [];
+        if (user.role === 'student') {
+            linkedParents = await User.find({ 
+                role: 'parent', 
+                linkedStudents: userId 
+            }).select('name email isActive');
+        }
+
+        // 3. Enrollments with course & progress details
+        const enrollments = await Enrollment.find({ user: userId })
+            .populate({
+                path: 'course',
+                select: 'title thumbnail instructor',
+                populate: { path: 'instructor', select: 'name' }
+            })
+            .sort('-enrolledAt');
+
+        // Calculate Overview Stats
+        const totalEnrolled = enrollments.length;
+        const totalCompleted = enrollments.filter(e => e.status === 'completed').length;
+        const totalSpent = enrollments.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+        // 4. Progress Tracking Details
+        const courseProgress = await Progress.find({ student: userId })
+            .populate('course', 'title');
+
+        // 5. Quiz Performance
+        const quizResults = await Result.find({ student: userId })
+            .populate({
+                path: 'quiz',
+                select: 'title passingScore',
+                populate: { path: 'module', select: 'title' }
+            })
+            .sort('-attemptedAt');
+
+        const quizStats = {
+            totalAttempts: quizResults.length,
+            avgScore: quizResults.length ? (quizResults.reduce((s, r) => s + r.score, 0) / quizResults.length).toFixed(1) : 0,
+            passRate: quizResults.length ? ((quizResults.filter(r => r.passed).length / quizResults.length) * 100).toFixed(1) : 0
+        };
+
+        // 6. Payments/Transactions
+        // (Enrollment models usually contain payment info in this system)
+        const payments = enrollments.map(e => ({
+            id: e._id,
+            course: e.course?.title,
+            amount: e.amount,
+            status: e.status === 'refunded' ? 'refunded' : 'success', // Simple mapping
+            date: e.enrolledAt,
+            transactionId: e.paymentId || 'N/A' // Assuming paymentId exists in Enrollment
+        }));
+
+        // 7. Certificates
+        const certificates = await Certificate.find({ student: userId })
+            .populate('course', 'title')
+            .sort('-issueDate');
+
+        // 8. Support Tickets
+        const tickets = await Ticket.find({ user: userId })
+            .sort('-createdAt');
+
+        // 9. Activity Logs (Login, Course Access, etc.)
+        const activityLogs = await AuditLog.find({ user: userId })
+            .sort('-timestamp')
+            .limit(50);
+
+        const lastActive = activityLogs.length > 0 ? activityLogs[0].timestamp : user.createdAt;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                profile: {
+                    ...user._doc,
+                    linkedParents
+                },
+                overview: {
+                    totalEnrolled,
+                    totalCompleted,
+                    totalSpent,
+                    lastActive
+                },
+                enrollments,
+                progress: courseProgress,
+                quizPerformance: {
+                    stats: quizStats,
+                    results: quizResults
+                },
+                payments,
+                certificates,
+                tickets,
+                activityLogs,
+                linkedAccounts: {
+                    students: user.linkedStudents || [],
+                    parents: linkedParents
+                }
+            }
         });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });

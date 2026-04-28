@@ -1,10 +1,12 @@
 'use client';
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import InstructorStudio from '../../create/InstructorStudio';
 
-export default function EditCoursePage({ params: paramsPromise }) {
-    const params = use(paramsPromise);
+export default function EditCoursePage() {
+    const params = useParams();
     const id = params.id;
     
+    if (!id) return null;
+
     return <InstructorStudio courseId={id} />;
 }
