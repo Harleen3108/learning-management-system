@@ -17,12 +17,16 @@ const fmt = (n) => {
     return n.toString();
 };
 
-const avatarUrl = (name, seed) =>
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+const avatarUrl = (ins) => {
+    if (ins?.profilePhoto && ins.profilePhoto !== 'no-photo.jpg') {
+        return ins.profilePhoto.startsWith('http') ? ins.profilePhoto : `http://localhost:5000/uploads/${ins.profilePhoto}`;
+    }
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(ins?._id || ins?.name || 'default')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+};
 
 const STATUS_CONFIG = {
-    approved: { label: 'ACTIVE',   bg: 'bg-[#071739]/5',   text: 'text-[#071739]',   dot: 'bg-emerald-400' },
-    pending:  { label: 'PENDING',  bg: 'bg-[#A68868]/10',  text: 'text-[#A68868]',  dot: 'bg-amber-400'   },
+    approved: { label: 'ACTIVE',   bg: 'bg-primary/5',   text: 'text-primary',   dot: 'bg-emerald-400' },
+    pending:  { label: 'PENDING',  bg: 'bg-secondary/10',  text: 'text-secondary',  dot: 'bg-amber-400'   },
     rejected: { label: 'REJECTED', bg: 'bg-orange-50', text: 'text-orange-500', dot: 'bg-rose-400'    },
 };
 
@@ -45,9 +49,9 @@ function StatCard({ icon, label, value, iconBg, iconColor, valueColor, onView })
             </div>
 
             {/* Value */}
-            <p className={`text-2xl font-bold leading-none mb-1 ${valueColor}`}>{value}</p>
+            <p className={`text-2xl font-semibold leading-none mb-1 ${valueColor}`}>{value}</p>
             {/* Label */}
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{label}</p>
         </motion.div>
     );
 }
@@ -72,7 +76,7 @@ function InstructorCard({ ins, onView, onApprove, onReject, onDelete, onEdit, de
                         {/* Avatar */}
                         <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden border-2 border-white shadow-md">
                             <img
-                                src={avatarUrl(ins.name, ins._id)}
+                                src={avatarUrl(ins)}
                                 alt={ins.name}
                                 className="w-full h-full object-cover"
                             />
@@ -82,7 +86,7 @@ function InstructorCard({ ins, onView, onApprove, onReject, onDelete, onEdit, de
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${cfg.bg} ${cfg.text}`}>
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest ${cfg.bg} ${cfg.text}`}>
                             {cfg.label}
                         </span>
                         <div className="relative">
@@ -102,27 +106,27 @@ function InstructorCard({ ins, onView, onApprove, onReject, onDelete, onEdit, de
                                         className="absolute right-0 mt-1.5 w-44 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-20"
                                     >
                                         <button onClick={() => { onView(); setMenuOpen(false); }}
-                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-[#071739]/5 hover:text-[#071739] transition-all">
+                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-[#071739]/5 hover:text-[#071739] transition-all">
                                             <BookOpen size={13} /> View Dashboard
                                         </button>
                                         <button onClick={() => { onEdit(); setMenuOpen(false); }}
-                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
+                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all">
                                             <Edit2 size={13} /> Edit Profile
                                         </button>
                                         {ins.instructorStatus === 'pending' && (<>
                                             <div className="h-px bg-slate-50 mx-3 my-1" />
                                             <button onClick={() => { onApprove(); setMenuOpen(false); }}
-                                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-all">
+                                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-all">
                                                 <CheckCircle2 size={13} /> Approve
                                             </button>
                                             <button onClick={() => { onReject(); setMenuOpen(false); }}
-                                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-orange-500 hover:bg-orange-50 transition-all">
+                                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-orange-500 hover:bg-orange-50 transition-all">
                                                 <XCircle size={13} /> Reject
                                             </button>
                                         </>)}
                                         <div className="h-px bg-slate-50 mx-3 my-1" />
                                         <button onClick={() => { onDelete(); setMenuOpen(false); }}
-                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-50 transition-all">
+                                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 transition-all">
                                             <Trash2 size={13} /> Delete
                                         </button>
                                     </motion.div>
@@ -134,9 +138,9 @@ function InstructorCard({ ins, onView, onApprove, onReject, onDelete, onEdit, de
 
                 {/* Name / email / specialty */}
                 <div className="mb-5">
-                    <h3 className="text-lg font-bold text-slate-800 leading-tight mb-0.5">{ins.name}</h3>
+                    <h3 className="text-lg font-semibold text-slate-800 leading-tight mb-0.5">{ins.name}</h3>
                     <p className="text-xs text-slate-400 font-medium mb-2">{ins.email}</p>
-                    <p className="text-[10px] font-bold tracking-widest uppercase text-[#071739]">
+                    <p className="text-[10px] font-semibold tracking-widest uppercase text-[#071739]">
                         {ins.instructorSpecialty || 'Senior Educator'}
                     </p>
                 </div>
@@ -144,18 +148,18 @@ function InstructorCard({ ins, onView, onApprove, onReject, onDelete, onEdit, de
                 {/* Metrics row */}
                 <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-50">
                     <div>
-                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-1">Courses</p>
-                        <p className="text-base font-bold text-slate-700">
+                        <p className="text-[9px] font-semibold text-slate-300 uppercase tracking-widest mb-1">Courses</p>
+                        <p className="text-base font-semibold text-slate-700">
                             {String(ins.courseCount || 0).padStart(2, '0')}
                         </p>
                     </div>
                     <div>
-                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-1">Students</p>
-                        <p className="text-base font-bold text-slate-700">{fmt(ins.studentCount)}</p>
+                        <p className="text-[9px] font-semibold text-slate-300 uppercase tracking-widest mb-1">Students</p>
+                        <p className="text-base font-semibold text-slate-700">{fmt(ins.studentCount)}</p>
                     </div>
                     <div>
-                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-1">Rating</p>
-                        <p className="text-base font-bold text-slate-700 flex items-center gap-1">
+                        <p className="text-[9px] font-semibold text-slate-300 uppercase tracking-widest mb-1">Rating</p>
+                        <p className="text-base font-semibold text-slate-700 flex items-center gap-1">
                             <Star size={11} className="text-[#A68868] fill-[#A68868]" />
                             {ins.averageRating ? ins.averageRating.toFixed(1) : '—'}
                         </p>
@@ -166,7 +170,7 @@ function InstructorCard({ ins, onView, onApprove, onReject, onDelete, onEdit, de
             {/* View Dashboard CTA */}
             <button
                 onClick={onView}
-                className="w-full py-4 text-[#071739] font-bold text-xs uppercase tracking-widest bg-slate-50 hover:bg-[#071739]/5 border-t border-slate-100 transition-all rounded-b-3xl"
+                className="w-full py-4 text-[#071739] font-semibold text-xs uppercase tracking-widest bg-slate-50 hover:bg-[#071739]/5 border-t border-slate-100 transition-all rounded-b-3xl"
             >
                 View Dashboard
             </button>
@@ -193,13 +197,16 @@ function RecentApplications({ instructors }) {
     return (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-7">
             <div className="flex items-center justify-between mb-6">
-                <h3 className="text-sm font-bold text-slate-800">Recent Applications</h3>
-                <button className="text-[10px] font-bold text-[#071739] uppercase tracking-widest hover:text-[#A68868] transition-all">
+                <h3 className="text-sm font-semibold text-slate-800">Recent Applications</h3>
+                <button 
+                    onClick={() => router.push('/dashboard/admin/instructor-applications')}
+                    className="text-[10px] font-semibold text-[#071739] uppercase tracking-widest hover:text-[#A68868] transition-all"
+                >
                     See All
                 </button>
             </div>
             {recent.length === 0 ? (
-                <div className="py-8 text-center text-slate-300 text-xs font-bold">No pending applications</div>
+                <div className="py-8 text-center text-slate-300 text-xs font-semibold">No pending applications</div>
             ) : (
                 <div className="space-y-1">
                     {recent.map((ins, i) => (
@@ -211,11 +218,11 @@ function RecentApplications({ instructors }) {
                             className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-all group"
                         >
                             <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden shrink-0">
-                                <img src={avatarUrl(ins.name, ins._id)} alt={ins.name} className="w-full h-full object-cover" />
+                                <img src={avatarUrl(ins)} alt={ins.name} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-slate-700 truncate">{ins.name}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                <p className="text-xs font-semibold text-slate-700 truncate">{ins.name}</p>
+                                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mt-0.5">
                                     Applied {timeAgo(ins.createdAt)} · {ins.instructorSpecialty || 'General'}
                                 </p>
                             </div>
@@ -312,18 +319,19 @@ export default function InstructorManagement() {
 
 
     const filtered = instructors.filter(ins => {
+        const isInstructorCandidate = ins.role === 'instructor' || ins.instructorStatus === 'pending';
         const matchStatus = filter === 'all' || ins.instructorStatus === filter;
         const matchSearch = !search || ins.name.toLowerCase().includes(search.toLowerCase())
             || ins.email?.toLowerCase().includes(search.toLowerCase());
-        return matchStatus && matchSearch;
+        return isInstructorCandidate && matchStatus && matchSearch;
     });
 
     // stats
     const pendingCount  = instructors.filter(i => i.instructorStatus === 'pending').length;
     const totalCourses  = instructors.reduce((s, i) => s + (i.courseCount || 0), 0);
-    const avgRating     = instructors.length
-        ? (instructors.reduce((s, i) => s + (i.averageRating || 0), 0) /
-           instructors.filter(i => i.averageRating).length || 0).toFixed(2)
+    const avgRating     = instructors.filter(i => i.role === 'instructor').length
+        ? (instructors.filter(i => i.role === 'instructor').reduce((s, i) => s + (i.averageRating || 0), 0) /
+           instructors.filter(i => i.role === 'instructor' && i.averageRating).length || 0).toFixed(2)
         : '—';
 
     const specialties = ['All Specializations', ...new Set(
@@ -337,7 +345,7 @@ export default function InstructorManagement() {
                 {/* ── Page Header ── */}
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
                     <div>
-                        <h1 className="text-4xl font-bold text-slate-800 tracking-tight">Instructor Fleet</h1>
+                        <h1 className="text-4xl font-semibold text-slate-800 tracking-tight">Instructor Fleet</h1>
                         <p className="text-slate-400 mt-2 font-medium max-w-md leading-relaxed text-sm">
                             Manage teaching credentials, course performance, and student impact metrics across the global educator network.
                         </p>
@@ -355,7 +363,7 @@ export default function InstructorManagement() {
                                     if (val === 'pending' || val === 'approved' || val === 'rejected') setFilter(val);
                                     else setFilter('all');
                                 }}
-                                className="appearance-none bg-white border border-slate-200 rounded-2xl pl-4 pr-10 py-3 text-sm font-bold text-slate-600 outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all shadow-sm cursor-pointer"
+                                className="appearance-none bg-white border border-slate-200 rounded-2xl pl-4 pr-10 py-3 text-sm font-semibold text-slate-600 outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all shadow-sm cursor-pointer"
                             >
                                 <option value="all">All Specializations</option>
                                 <option value="pending">Pending Approval</option>
@@ -368,7 +376,7 @@ export default function InstructorManagement() {
                         {/* Onboard button */}
                         <button
                             onClick={() => setShowOnboard(true)}
-                            className="flex items-center gap-2.5 bg-[#071739] hover:bg-[#020a1a] text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-slate-900/10 transition-all"
+                            className="flex items-center gap-2.5 bg-[#071739] hover:bg-[#020a1a] text-white px-6 py-3 rounded-2xl font-semibold text-sm shadow-lg shadow-slate-900/10 transition-all"
                         >
                             <UserPlus size={16} />
                             Onboard Instructor
@@ -382,36 +390,36 @@ export default function InstructorManagement() {
                         icon={<ShieldCheck size={18} />}
                         label="Pending Review"
                         value={pendingCount}
-                        iconBg="bg-[#A68868]/10"
-                        iconColor="text-[#A68868]"
-                        valueColor="text-[#A68868]"
+                        iconBg="bg-secondary/10"
+                        iconColor="text-secondary"
+                        valueColor="text-secondary"
                         onView={() => setFilter('pending')}
                     />
                     <StatCard
                         icon={<BookOpen size={18} />}
                         label="Active Courses"
                         value={totalCourses.toLocaleString()}
-                        iconBg="bg-[#071739]/5"
-                        iconColor="text-[#071739]"
-                        valueColor="text-[#071739]"
+                        iconBg="bg-primary/5"
+                        iconColor="text-primary"
+                        valueColor="text-primary"
                         onView={() => setFilter('approved')}
                     />
                     <StatCard
                         icon={<Star size={18} />}
                         label="Avg Rating"
                         value={avgRating}
-                        iconBg="bg-[#A68868]/5"
-                        iconColor="text-[#A68868]"
-                        valueColor="text-[#A68868]"
+                        iconBg="bg-secondary/5"
+                        iconColor="text-secondary"
+                        valueColor="text-secondary"
                         onView={() => {}}
                     />
                     <StatCard
                         icon={<Users size={18} />}
                         label="Total Instructors"
                         value={instructors.length}
-                        iconBg="bg-[#071739]/5"
-                        iconColor="text-[#071739]"
-                        valueColor="text-[#071739]"
+                        iconBg="bg-primary/5"
+                        iconColor="text-primary"
+                        valueColor="text-primary"
                         onView={() => setFilter('all')}
                     />
                 </div>
@@ -441,7 +449,7 @@ export default function InstructorManagement() {
                         ) : filtered.length === 0 ? (
                             <div className="py-24 bg-white rounded-3xl border border-dashed border-slate-200 text-center">
                                 <Users size={36} className="text-slate-200 mx-auto mb-3" />
-                                <p className="text-slate-400 font-bold text-sm">No instructors match your criteria</p>
+                                <p className="text-slate-400 font-semibold text-sm">No instructors match your criteria</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -485,50 +493,50 @@ export default function InstructorManagement() {
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden p-9"
                         >
-                            <h2 className="text-xl font-bold text-slate-800 mb-7 tracking-tight">Edit Instructor</h2>
+                            <h2 className="text-xl font-semibold text-slate-800 mb-7 tracking-tight">Edit Instructor</h2>
                             <form onSubmit={handleEditSave} className="space-y-5">
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Full Name</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">Full Name</label>
                                     <input
                                         type="text"
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-semibold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
                                         value={editingInstructor.name}
                                         onChange={e => setEditingInstructor({ ...editingInstructor, name: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Specialty</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">Specialty</label>
                                     <input
                                         type="text"
                                         placeholder="e.g. Full Stack Developer"
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-semibold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
                                         value={editingInstructor.instructorSpecialty || ''}
                                         onChange={e => setEditingInstructor({ ...editingInstructor, instructorSpecialty: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Phone Number</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">Phone Number</label>
                                     <input
                                         type="text"
                                         placeholder="+91 XXXXX XXXXX"
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-semibold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
                                         value={editingInstructor.phone || ''}
                                         onChange={e => setEditingInstructor({ ...editingInstructor, phone: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Change Password</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">Change Password</label>
                                     <input
                                         type="password"
                                         placeholder="••••••••"
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-semibold text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all"
                                         value={editingInstructor.password || ''}
                                         onChange={e => setEditingInstructor({ ...editingInstructor, password: e.target.value })}
                                     />
                                     <p className="text-[9px] text-slate-400 font-medium mt-1 ml-1">Leave blank to keep current password</p>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Bio</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">Bio</label>
                                     <textarea
                                         rows="2"
                                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-medium text-sm outline-none focus:ring-4 focus:ring-[#071739]/10 transition-all resize-none"
@@ -540,13 +548,13 @@ export default function InstructorManagement() {
                                     <button
                                         type="button"
                                         onClick={() => setEditingInstructor(null)}
-                                        className="flex-1 py-4 text-slate-400 font-bold text-sm hover:bg-slate-50 rounded-2xl transition-all"
+                                        className="flex-1 py-4 text-slate-400 font-semibold text-sm hover:bg-slate-50 rounded-2xl transition-all"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-[2] bg-[#071739] text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-[#020a1a] transition-all"
+                                        className="flex-[2] bg-[#071739] text-white py-4 rounded-2xl font-semibold text-xs uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-[#020a1a] transition-all"
                                     >
                                         Save Changes
                                     </button>
@@ -579,7 +587,7 @@ export default function InstructorManagement() {
                                     <UserPlus size={20} />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-800 tracking-tight">Onboard Instructor</h2>
+                                    <h2 className="text-xl font-semibold text-slate-800 tracking-tight">Onboard Instructor</h2>
                                     <p className="text-xs text-slate-400 font-medium mt-0.5">Create a new instructor account on the platform</p>
                                 </div>
                                 <button
@@ -594,7 +602,7 @@ export default function InstructorManagement() {
                                 {/* Row: Name + Email */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">
                                             Full Name <span className="text-rose-400">*</span>
                                         </label>
                                         <input
@@ -607,7 +615,7 @@ export default function InstructorManagement() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">
                                             Email Address <span className="text-rose-400">*</span>
                                         </label>
                                         <input
@@ -623,7 +631,7 @@ export default function InstructorManagement() {
 
                                 {/* Password */}
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">
                                         Password <span className="text-rose-400">*</span>
                                     </label>
                                     <input
@@ -638,7 +646,7 @@ export default function InstructorManagement() {
 
                                 {/* Specialty */}
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Specialty / Title</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">Specialty / Title</label>
                                     <input
                                         type="text"
                                         placeholder="e.g. Full Stack Developer, Data Scientist"
@@ -650,7 +658,7 @@ export default function InstructorManagement() {
 
                                 {/* Bio */}
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Short Bio</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest block mb-2">Short Bio</label>
                                     <textarea
                                         rows="3"
                                         placeholder="Brief introduction about the instructor..."
@@ -665,14 +673,14 @@ export default function InstructorManagement() {
                                     <button
                                         type="button"
                                         onClick={() => setShowOnboard(false)}
-                                        className="flex-1 py-3.5 text-slate-400 font-bold text-sm hover:bg-slate-50 rounded-2xl transition-all border border-slate-100"
+                                        className="flex-1 py-3.5 text-slate-400 font-semibold text-sm hover:bg-slate-50 rounded-2xl transition-all border border-slate-100"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={onboardLoading}
-                                        className="flex-[2] bg-[#071739] text-white py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-[#020a1a] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                                        className="flex-[2] bg-[#071739] text-white py-3.5 rounded-2xl font-semibold text-xs uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-[#020a1a] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                                     >
                                         {onboardLoading ? (
                                             <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating...</>
@@ -694,7 +702,7 @@ export default function InstructorManagement() {
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 30 }}
-                        className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-6 py-4 rounded-2xl text-white text-sm font-bold shadow-2xl
+                        className={`fixed bottom-6 right-6 z-[999] flex items-center gap-3 px-6 py-4 rounded-2xl text-white text-sm font-semibold shadow-2xl
                             ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`}
                     >
                         {toast.type === 'error' ? <XCircle size={17} /> : <CheckCircle2 size={17} />}

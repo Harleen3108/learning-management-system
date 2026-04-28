@@ -1,36 +1,27 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/services/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import InstructorDashboard from '../InstructorDashboard';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function InstructorPage() {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { user, isAuthenticated, isLoading } = useAuthStore();
     const router = useRouter();
 
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const res = await api.get('/auth/me');
-                const userData = res.data.data;
-                if (userData.role !== 'instructor') {
-                    router.push('/dashboard/' + userData.role);
-                } else {
-                    setUser(userData);
-                }
-            } catch (err) {
+        if (!isLoading) {
+            if (!isAuthenticated) {
                 router.push('/login');
-            } finally {
-                setLoading(false);
+                return;
             }
-        };
-        fetchUser();
-    }, [router]);
+            if (user?.role !== 'instructor') {
+                router.push('/dashboard/' + user?.role);
+            }
+        }
+    }, [isLoading, isAuthenticated, user, router]);
 
-    if (loading) return null;
-    if (!user) return null;
+    if (isLoading || !isAuthenticated || user?.role !== 'instructor') return null;
 
     return (
         <DashboardLayout>

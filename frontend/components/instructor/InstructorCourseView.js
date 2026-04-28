@@ -146,9 +146,9 @@ export default function InstructorCourseView({ courseId }) {
                                 <ArrowLeft size={14} /> Dashboard
                             </Link>
                             <span className="text-white/40">›</span>
-                            <span className="text-white/70">{course.category}</span>
+                            <span className="text-white/70">{course.category?.name ?? course.category}</span>
                             <span className="text-white/40">›</span>
-                            <span className="text-white/70">{course.subcategory || 'General'}</span>
+                            <span className="text-white/70">{(course.subcategory?.name ?? course.subcategory) || 'General'}</span>
                         </div>
 
                         <h1 className="text-white text-3xl lg:text-[2.5rem] font-semibold tracking-tight leading-[1.15] max-w-3xl">

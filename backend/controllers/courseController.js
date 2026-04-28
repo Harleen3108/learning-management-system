@@ -116,7 +116,8 @@ exports.getCourse = async (req, res, next) => {
             })
             .populate('instructor', 'name')
             .populate('category', 'name')
-            .populate('subcategory', 'name');
+            .populate('subcategory', 'name')
+            .populate('feedbackHistory.admin', 'name');
 
         if (!course) {
             return res.status(404).json({ success: false, message: 'Course not found' });
@@ -161,7 +162,7 @@ exports.getCourse = async (req, res, next) => {
 
 // @desc    Get signed video URL for a lesson
 // @route   GET /api/v1/courses/:courseId/lessons/:lessonId/video
-// @access  Private (Enrolled/Authorized)
+// @access  Private (Enrolled/Authorized – enforced by checkEnrollment middleware)
 exports.getLessonVideoUrl = async (req, res, next) => {
     try {
         const { lessonId } = req.params;
@@ -172,26 +173,56 @@ exports.getLessonVideoUrl = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Lesson not found' });
         }
 
-        if (!lesson.videoPublicId) {
-            // Fallback for admins/instructors if publicId is missing but URL exists
-            if ((req.user.role === 'admin' || req.user.role === 'super-admin' || lesson.instructor?.toString() === req.user.id) && lesson.videoUrl) {
-                return res.status(200).json({ success: true, videoUrl: lesson.videoUrl });
-            }
-            return res.status(400).json({ success: false, message: 'This lesson does not have a secure video ID' });
+        // Guard against placeholder URLs created when the instructor saved without uploading.
+        const isPlaceholder = !lesson.videoUrl || /placeholder\.com\/video/i.test(lesson.videoUrl);
+        if (isPlaceholder && !lesson.videoPublicId) {
+            return res.status(404).json({
+                success: false,
+                message: 'This lesson does not have a video uploaded yet.'
+            });
         }
 
-        // Generate Signed URL with appropriate access type
-        const signedUrl = cloudinary.getSignedUrl(lesson.videoPublicId, lesson.videoAccessType || 'upload');
+        // 1. Cloudinary-hosted video — generate the appropriate URL based on access type.
+        if (lesson.videoPublicId) {
+            try {
+                const accessType = lesson.videoAccessType || 'upload';
+                const generatedUrl = cloudinary.getSignedUrl(lesson.videoPublicId, accessType);
+                return res.status(200).json({
+                    success: true,
+                    videoUrl: generatedUrl,
+                    provider: 'cloudinary',
+                    // Hint for the frontend so it can show a helpful message if playback fails.
+                    note: accessType === 'authenticated'
+                        ? 'Video uses authenticated delivery. If it fails to play, ask the instructor to re-upload — Cloudinary signed URLs require a configured auth_token on the cloud account.'
+                        : undefined
+                });
+            } catch (signErr) {
+                console.error('Cloudinary sign failed, falling back to videoUrl:', signErr);
+                // Fall through to direct URL if signing failed.
+            }
+        }
 
-        res.status(200).json({
+        // 2. Direct/external video URL (YouTube, Vimeo, mp4 link, public Cloudinary, etc.)
+        // Access has already been verified by checkEnrollment middleware.
+        return res.status(200).json({
             success: true,
-            videoUrl: signedUrl
+            videoUrl: lesson.videoUrl,
+            provider: detectProvider(lesson.videoUrl)
         });
     } catch (err) {
         console.error('Error in getLessonVideoUrl:', err);
         res.status(400).json({ success: false, message: `Video fetch failed: ${err.message}` });
     }
 };
+
+// Helper: classify the URL so the frontend knows how to render it.
+function detectProvider(url) {
+    if (!url) return 'unknown';
+    if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
+    if (/vimeo\.com/i.test(url)) return 'vimeo';
+    if (/cloudinary\.com/i.test(url)) return 'cloudinary';
+    return 'direct';
+}
 
 
 // @desc    Create course
@@ -280,30 +311,76 @@ exports.updateCourse = async (req, res, next) => {
 // @access  Private (Admin)
 exports.updateCourseStatus = async (req, res, next) => {
     try {
-        let course = await Course.findById(req.params.id);
+        const { status, feedback } = req.body;
+        
+        let updateQuery = { $set: { status } };
+        
+        if (feedback) {
+            updateQuery.$set.feedback = feedback;
+            updateQuery.$push = {
+                feedbackHistory: {
+                    content: feedback,
+                    admin: req.user.id,
+                    date: Date.now(),
+                    statusAtTime: status
+                }
+            };
+        }
+
+        const course = await Course.findByIdAndUpdate(
+            req.params.id,
+            updateQuery,
+            { new: true, runValidators: true }
+        ).populate('feedbackHistory.admin', 'name');
 
         if (!course) {
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
-
-        course.status = req.body.status;
-        if (req.body.feedback) {
-            course.feedback = req.body.feedback;
-        }
-        await course.save();
 
         // Log action with feedback details
         await AuditLog.create({
             user: req.user.id,
             action: 'UPDATE_COURSE_STATUS',
             resource: 'Course',
-            details: `Updated course status: ${course.title} to ${course.status}${req.body.feedback ? `. Feedback: ${req.body.feedback}` : ''}`,
+            details: `Updated course status: ${course.title} to ${status}${feedback ? `. Feedback: ${feedback}` : ''}`,
             entityId: course._id
         });
 
+        // Notify the course's instructor about the status change
+        try {
+            const { notifyUser } = require('../services/notify');
+            const typeMap = {
+                published: 'course_approved',
+                rejected: 'course_rejected',
+                'needs changes': 'course_changes_requested'
+            };
+            const titleMap = {
+                published: 'Course approved 🎉',
+                rejected: 'Course rejected',
+                'needs changes': 'Changes requested'
+            };
+            if (typeMap[status] && course.instructor) {
+                await notifyUser({
+                    recipient: course.instructor,
+                    type: typeMap[status],
+                    title: titleMap[status],
+                    message: status === 'published'
+                        ? `"${course.title}" is now live and visible to students.`
+                        : `Admin reviewed "${course.title}".${feedback ? ' Notes: ' + feedback : ''}`,
+                    link: `/dashboard/instructor/edit/${course._id}`,
+                    entity: { type: 'Course', id: course._id }
+                });
+            }
+        } catch (e) { console.error('[notify] course status:', e.message); }
+
         res.status(200).json({ success: true, data: course });
     } catch (err) {
-        res.status(400).json({ success: false, message: err.message });
+        console.error('Update Course Status Error:', err);
+        res.status(400).json({ 
+            success: false, 
+            message: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
 };
 
@@ -348,10 +425,19 @@ exports.bulkSyncCourse = async (req, res, next) => {
             const isNewModule = modData.id.length < 20;
 
             if (isNewModule) {
-                const newMod = await Module.create({ title: modData.title, course: course._id, order: i });
+                const newMod = await Module.create({
+                    title: modData.title,
+                    course: course._id,
+                    order: i,
+                    attachments: modData.attachments || []
+                });
                 moduleId = newMod._id;
             } else {
-                await Module.findByIdAndUpdate(modData.id, { title: modData.title, order: i });
+                await Module.findByIdAndUpdate(modData.id, {
+                    title: modData.title,
+                    order: i,
+                    attachments: modData.attachments || []
+                });
                 moduleId = modData.id;
             }
 
@@ -417,6 +503,20 @@ exports.bulkSyncCourse = async (req, res, next) => {
             details: `Bulk synced course: ${course.title}`,
             entityId: course._id
         });
+
+        // If the instructor just submitted the course for review, notify admins
+        if (status === 'pending') {
+            try {
+                const { notifyRoles } = require('../services/notify');
+                await notifyRoles(['admin', 'super-admin'], {
+                    type: 'course_submitted',
+                    title: 'New course awaiting review',
+                    message: `"${course.title}" has been submitted for approval.`,
+                    link: '/dashboard/admin/courses',
+                    entity: { type: 'Course', id: course._id }
+                });
+            } catch (e) { console.error('[notify] course submission:', e.message); }
+        }
 
         res.status(200).json({ success: true, data: course });
     } catch (err) {

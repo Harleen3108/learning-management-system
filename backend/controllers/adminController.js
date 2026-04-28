@@ -12,6 +12,7 @@ const Module = require('../models/Module');
 const Result = require('../models/Result');
 const Progress = require('../models/Progress');
 const Ticket = require('../models/Ticket');
+const InstructorApplication = require('../models/InstructorApplication');
 const mongoose = require('mongoose');
 
 // @desc    Get all reviews aggregate stats
@@ -89,10 +90,11 @@ exports.getDashboardStats = async (req, res, next) => {
 // @access  Private (Admin)
 exports.getUsers = async (req, res, next) => {
     try {
-        const { role, status, search } = req.query;
+        const { role, status, search, instructorStatus } = req.query;
         let query = {};
 
         if (role) query.role = role;
+        if (instructorStatus) query.instructorStatus = instructorStatus;
         if (status) query.isActive = status === 'active';
         if (search) {
             query.name = { $regex: search, $options: 'i' };
@@ -131,7 +133,12 @@ exports.updateUser = async (req, res, next) => {
 
         // Update other fields
         if (req.body.name) user.name = req.body.name;
-        if (req.body.role) user.role = req.body.role;
+        if (req.body.role) {
+            user.role = req.body.role;
+            if (req.body.role === 'instructor' && !user.instructorStatus) {
+                user.instructorStatus = 'approved';
+            }
+        }
         if (req.body.phone) user.phone = req.body.phone;
         if (req.body.isActive !== undefined) user.isActive = req.body.isActive;
         
@@ -140,6 +147,7 @@ exports.updateUser = async (req, res, next) => {
         if (req.body.instructorSpecialty) user.instructorSpecialty = req.body.instructorSpecialty;
         if (req.body.profilePhoto) user.profilePhoto = req.body.profilePhoto;
         if (req.body.socialLinks) user.socialLinks = req.body.socialLinks;
+        if (req.body.instructorStatus) user.instructorStatus = req.body.instructorStatus;
 
         await user.save();
 
@@ -172,7 +180,8 @@ exports.createUser = async (req, res, next) => {
             email,
             password: password || 'Welcome123!', // Default password
             role: role || 'student',
-            dob
+            dob,
+            instructorStatus: role === 'instructor' ? 'approved' : undefined
         });
 
         // Link parent if student
@@ -278,15 +287,30 @@ exports.processRefund = async (req, res, next) => {
 // @access  Private (Admin)
 exports.getCoursesAdmin = async (req, res, next) => {
     try {
-        const { status } = req.query;
+        const { status, search } = req.query;
         let query = {};
         if (status) query.status = status;
+        if (search) {
+            query.title = { $regex: search, $options: 'i' };
+        }
 
         const courses = await Course.find(query)
             .populate('instructor', 'name email')
-            .sort('-createdAt');
+            .sort('-createdAt')
+            .lean();
 
-        res.status(200).json({ success: true, count: courses.length, data: courses });
+        // Enrich with real stats
+        const enrichedCourses = await Promise.all(courses.map(async (course) => {
+            const enrollmentCount = await Enrollment.countDocuments({ course: course._id });
+            const reviewCount = await Review.countDocuments({ course: course._id });
+            return {
+                ...course,
+                enrollmentCount,
+                reviewCount
+            };
+        }));
+
+        res.status(200).json({ success: true, count: enrichedCourses.length, data: enrichedCourses });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
     }
@@ -332,6 +356,22 @@ exports.getCoupons = async (req, res, next) => {
 exports.createCoupon = async (req, res, next) => {
     try {
         const coupon = await Coupon.create(req.body);
+
+        // Broadcast new offer to all students
+        try {
+            const { notifyRoles } = require('../services/notify');
+            const offerLabel = coupon.discountType === 'percentage'
+                ? `${coupon.discountValue}% off`
+                : `₹${coupon.discountValue} off`;
+            await notifyRoles(['student'], {
+                type: 'new_coupon',
+                title: 'New offer just dropped 🎁',
+                message: `Use code ${coupon.code} at checkout to get ${offerLabel}.`,
+                link: '/dashboard/explore',
+                entity: { type: 'Coupon', id: coupon._id }
+            });
+        } catch (e) { console.error('[notify] new coupon:', e.message); }
+
         res.status(201).json({ success: true, data: coupon });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
@@ -368,7 +408,17 @@ exports.getPaymentLogs = async (req, res, next) => {
 exports.getInstructors = async (req, res, next) => {
     try {
         const instructors = await User.aggregate([
-            { $match: { role: 'instructor' } },
+            { 
+                $match: { 
+                    $or: [
+                        { role: 'instructor' }, 
+                        { 
+                            instructorStatus: 'pending',
+                            instructorSpecialty: { $exists: true, $ne: '' }
+                        }
+                    ] 
+                } 
+            },
             {
                 $lookup: {
                     from: 'courses',
@@ -389,10 +439,12 @@ exports.getInstructors = async (req, res, next) => {
                 $project: {
                     name: 1,
                     email: 1,
+                    role: 1,
                     instructorStatus: 1,
                     instructorSpecialty: 1,
                     instructorBio: 1,
                     phone: 1,
+                    profilePhoto: 1,
                     createdAt: 1,
                     courseCount: { $size: '$courses' },
                     studentCount: { $size: '$enrollments' },
@@ -421,9 +473,12 @@ exports.getInstructorProfile = async (req, res, next) => {
 
         // 1. Basic profile
         const instructor = await User.findById(instructorId).select('-password');
-        if (!instructor || (instructor.role !== 'instructor' && instructor.role !== 'admin')) {
+        if (!instructor) {
             return res.status(404).json({ success: false, message: 'Instructor not found' });
         }
+
+        // Check if there's an application for this user
+        const application = await InstructorApplication.findOne({ user: instructorId }).sort('-createdAt');
 
         // 2. Courses with per-course enrollment count & revenue
         const courses = await Course.aggregate([
@@ -581,7 +636,8 @@ exports.getInstructorProfile = async (req, res, next) => {
                     passRate: parseFloat(passRate.toFixed(1))
                 },
                 activityLogs,
-                flaggedContent: flaggedReviews
+                flaggedContent: flaggedReviews,
+                application: application
             }
         });
     } catch (err) {
@@ -596,16 +652,21 @@ exports.updateInstructorStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
         
-        const instructor = await User.findByIdAndUpdate(req.params.id, {
-            instructorStatus: status
-        }, {
-            new: true,
-            runValidators: true
-        });
-
+        const instructor = await User.findById(req.params.id);
         if (!instructor) {
             return res.status(404).json({ success: false, message: 'Instructor not found' });
         }
+
+        instructor.instructorStatus = status;
+        if (status === 'approved') {
+            // Only change role if user is not already an admin
+            if (instructor.role !== 'admin' && instructor.role !== 'super-admin') {
+                instructor.role = 'instructor';
+            }
+            instructor.password = '12345678'; // Set default password
+        }
+
+        await instructor.save();
 
         // Log action
         await AuditLog.create({

@@ -2,6 +2,177 @@ const Enrollment = require('../models/Enrollment');
 const Course = require('../models/Course');
 const Result = require('../models/Result');
 const Progress = require('../models/Progress');
+const User = require('../models/User');
+const Review = require('../models/Review');
+const AuditLog = require('../models/AuditLog');
+
+// @desc    Get comprehensive admin analytics
+// @route   GET /api/v1/analytics/admin
+// @access  Private (Admin/Super-Admin)
+exports.getAdminAnalytics = async (req, res, next) => {
+    // Each block is wrapped in safe() so a single failing aggregate doesn't take down
+    // the whole endpoint with a 400 — the dashboard renders zeros for that section
+    // and the rest still loads.
+    const safe = async (fn, fallback) => {
+        try { return await fn(); }
+        catch (err) {
+            console.error('[Analytics] Sub-query failed:', err.message);
+            return fallback;
+        }
+    };
+
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+        sixMonthsAgo.setDate(1);
+        sixMonthsAgo.setHours(0, 0, 0, 0);
+
+        // 1. KPI Cards
+        const totalUsers           = await safe(() => User.countDocuments(), 0);
+        const activeStudents       = await safe(() => User.countDocuments({ role: 'student' }), 0);
+        const totalCourses         = await safe(() => Course.countDocuments(), 0);
+        const pendingInstructors   = await safe(() => User.countDocuments({ instructorStatus: 'pending' }), 0);
+        const newSignupsToday      = await safe(() => User.countDocuments({ createdAt: { $gte: today } }), 0);
+
+        const revenueResult = await safe(() => Enrollment.aggregate([
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]), []);
+        const totalRevenue = revenueResult[0]?.total || 0;
+
+        const totalProgress     = await safe(() => Progress.countDocuments(), 0);
+        const completedProgress = await safe(() => Progress.countDocuments({ isCompleted: true }), 0);
+        const completionRate    = totalProgress > 0 ? Math.round((completedProgress / totalProgress) * 100) : 0;
+
+        // 2. User Growth (last 6 months)
+        const userGrowth = await safe(() => User.aggregate([
+            { $match: { createdAt: { $gte: sixMonthsAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: '%b', date: '$createdAt' } },
+                    value: { $sum: 1 },
+                    sortKey: { $min: '$createdAt' }
+                }
+            },
+            { $sort: { sortKey: 1 } },
+            { $project: { _id: 0, label: '$_id', value: 1 } }
+        ]), []);
+
+        // 3. Course Performance (top 5 by enrollment)
+        const coursePerformance = await safe(() => Enrollment.aggregate([
+            { $group: { _id: '$course', value: { $sum: 1 } } },
+            { $sort: { value: -1 } },
+            { $limit: 5 },
+            {
+                $lookup: {
+                    from: 'courses',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'courseInfo'
+                }
+            },
+            { $unwind: { path: '$courseInfo', preserveNullAndEmptyArrays: false } },
+            { $project: { _id: 0, label: '$courseInfo.title', value: 1 } }
+        ]), []);
+
+        // 4. Instructor Performance (top 5 by revenue)
+        const instructorPerformance = await safe(() => Enrollment.aggregate([
+            {
+                $lookup: {
+                    from: 'courses',
+                    localField: 'course',
+                    foreignField: '_id',
+                    as: 'courseInfo'
+                }
+            },
+            { $unwind: { path: '$courseInfo', preserveNullAndEmptyArrays: false } },
+            { $group: { _id: '$courseInfo.instructor', value: { $sum: '$amount' } } },
+            { $sort: { value: -1 } },
+            { $limit: 5 },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'userInfo'
+                }
+            },
+            { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: false } },
+            { $project: { _id: 0, label: '$userInfo.name', value: 1 } }
+        ]), []);
+
+        // 5. Revenue Monthly (last 6 months)
+        const revenueMonthly = await safe(() => Enrollment.aggregate([
+            { $match: { enrolledAt: { $gte: sixMonthsAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: '%b', date: '$enrolledAt' } },
+                    value: { $sum: '$amount' },
+                    sortKey: { $min: '$enrolledAt' }
+                }
+            },
+            { $sort: { sortKey: 1 } },
+            { $project: { _id: 0, label: '$_id', value: 1 } }
+        ]), []);
+
+        // 6. Engagement (last 7 days)
+        const engagementData = await safe(() => Enrollment.aggregate([
+            { $match: { enrolledAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: '%a', date: '$enrolledAt' } },
+                    value: { $sum: 1 },
+                    sortKey: { $min: '$enrolledAt' }
+                }
+            },
+            { $sort: { sortKey: 1 } },
+            { $project: { _id: 0, label: '$_id', value: 1 } }
+        ]), []);
+
+        // 7. Recent Activity Feed
+        const activityFeed = await safe(
+            () => AuditLog.find().populate('user', 'name').sort('-timestamp').limit(10),
+            []
+        );
+
+        res.status(200).json({
+            success: true,
+            data: {
+                kpis: {
+                    totalUsers,
+                    activeStudents,
+                    totalCourses,
+                    totalRevenue,
+                    completionRate,
+                    newSignupsToday,
+                    pendingInstructors
+                },
+                charts: {
+                    userGrowth,
+                    coursePerformance,
+                    instructorPerformance,
+                    revenueMonthly,
+                    engagementData
+                },
+                activityFeed: (activityFeed || []).map(log => ({
+                    id: log._id,
+                    type: log.action,
+                    text: log.details || `${log.user?.name || 'System'} performed ${log.action}`,
+                    time: log.timestamp,
+                    action: log.action
+                }))
+            }
+        });
+    } catch (err) {
+        console.error('--- ADMIN ANALYTICS ERROR ---');
+        console.error('Message:', err.message);
+        console.error('Stack:', err.stack);
+        console.error('--- END ---');
+        res.status(500).json({ success: false, message: 'Failed to fetch analytics: ' + err.message });
+    }
+};
 
 // @desc    Get instructor dashboard analytics
 // @route   GET /api/v1/analytics/instructor

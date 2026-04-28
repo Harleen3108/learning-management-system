@@ -1,34 +1,27 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/services/api';
-import AdminLayout from '@/components/AdminLayout';
-import AdminDashboard from '../AdminDashboard';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function AdminPage() {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { user, isAuthenticated, isLoading } = useAuthStore();
     const router = useRouter();
 
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const res = await api.get('/auth/me');
-                const userData = res.data.data;
-                const role = userData.role.toLowerCase();
-                
-                if (role !== 'admin' && role !== 'super-admin') {
-                    router.push('/dashboard/' + role);
-                } else {
-                    // Redirect to analytics as requested
-                    router.push('/dashboard/admin/analytics');
-                }
-            } catch (err) {
+        if (!isLoading) {
+            if (!isAuthenticated) {
                 router.push('/login');
+                return;
             }
-        };
-        fetchUser();
-    }, [router]);
+            
+            const role = user?.role?.toLowerCase();
+            if (role !== 'admin' && role !== 'super-admin') {
+                router.push('/dashboard/' + role);
+            } else {
+                router.push('/dashboard/admin/analytics');
+            }
+        }
+    }, [isLoading, isAuthenticated, user, router]);
 
     return null;
 }

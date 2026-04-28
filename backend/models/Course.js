@@ -92,6 +92,18 @@ const courseSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    feedbackHistory: [{
+        content: String,
+        admin: {
+            type: mongoose.Schema.ObjectId,
+            ref: 'User'
+        },
+        date: {
+            type: Date,
+            default: Date.now
+        },
+        statusAtTime: String
+    }],
     instructor: {
         type: mongoose.Schema.ObjectId,
         ref: 'User',

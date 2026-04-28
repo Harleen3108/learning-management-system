@@ -8,6 +8,7 @@ import { Mail, Lock, User, Calendar, ShieldCheck, ArrowRight, Chrome } from 'luc
 import { clsx } from 'clsx';
 import HomeNavbar from '@/components/HomeNavbar';
 import { useGoogleLogin } from '@react-oauth/google';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function Login() {
     const [loginMethod, setLoginMethod] = useState('standard'); // 'standard' or 'advanced'
@@ -30,7 +31,10 @@ export default function Login() {
             const { token, data: user } = res.data;
             let role = user.role.toLowerCase();
             
-            if (token) localStorage.setItem('token', token);
+            if (token) {
+                localStorage.setItem('token', token);
+                useAuthStore.getState().setUser(user);
+            }
             
             if (role === 'super-admin') role = 'admin';
             
@@ -57,7 +61,10 @@ export default function Login() {
             const { token, data: user } = res.data;
             let role = user.role.toLowerCase();
             
-            if (token) localStorage.setItem('token', token);
+            if (token) {
+                localStorage.setItem('token', token);
+                useAuthStore.getState().setUser(user);
+            }
             
             if (role === 'super-admin') role = 'admin';
             
@@ -204,6 +211,7 @@ export default function Login() {
                                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#071739] transition-colors" size={18} />
                                             <input
                                                 type="text"
+                                                autoComplete="email"
                                                 required
                                                 placeholder="Enter your email"
                                                 className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 focus:ring-4 focus:ring-[#071739]/5 transition-all font-normal text-slate-800 placeholder:text-slate-300 placeholder:font-light"
@@ -221,6 +229,7 @@ export default function Login() {
                                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#071739] transition-colors" size={18} />
                                             <input
                                                 type="password"
+                                                autoComplete="current-password"
                                                 required
                                                 placeholder="••••••••"
                                                 className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 focus:ring-4 focus:ring-[#071739]/5 transition-all font-normal text-slate-800 placeholder:text-slate-300 placeholder:font-light"

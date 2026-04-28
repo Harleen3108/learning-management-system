@@ -1,16 +1,21 @@
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/services/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function MyCoursesRedirect() {
   const router = useRouter();
 
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+
   useEffect(() => {
-    const redirect = async () => {
-      try {
-        const res = await api.get('/auth/me');
-        const role = res.data.data.role.toLowerCase();
+    if (!isLoading) {
+        if (!isAuthenticated) {
+            router.replace('/login');
+            return;
+        }
+
+        const role = user?.role?.toLowerCase() || 'student';
         
         if (role === 'instructor') {
           router.replace('/dashboard/instructor');
@@ -19,12 +24,8 @@ export default function MyCoursesRedirect() {
         } else {
           router.replace('/dashboard/student');
         }
-      } catch (err) {
-        router.replace('/login');
-      }
-    };
-    redirect();
-  }, [router]);
+    }
+  }, [isLoading, isAuthenticated, user, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">

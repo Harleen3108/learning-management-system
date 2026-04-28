@@ -56,6 +56,7 @@ export default function InstructorStudio({ courseId, initialData }) {
     language: 'English',
     status: 'draft',
     feedback: '',
+    feedbackHistory: [],
     bulkLearn: '',
     bulkReqs: ''
   });
@@ -78,39 +79,44 @@ export default function InstructorStudio({ courseId, initialData }) {
         try {
           const res = await api.get(`/courses/${courseId}`);
           const course = res.data.data;
-          setCourseData({
-            title: course.title,
-            description: course.description,
+          setCourseData(prev => ({
+            ...prev,
+            title: course.title || '',
+            description: course.description || '',
             pricingType: course.price === 0 ? 'free' : 'paid',
-            price: course.price,
+            price: course.price ?? 0,
             discountPrice: course.discountPrice || 0,
-            category: course.category,
-            subcategory: course.subcategory || '',
-            difficulty: course.difficulty,
-            thumbnail: course.thumbnail,
+            // Backend may populate category/subcategory into objects; the form expects ObjectId strings.
+            category: course.category?._id || course.category || '',
+            subcategory: course.subcategory?._id || course.subcategory || '',
+            topics: course.topics || [],
+            difficulty: course.difficulty || 'beginner',
+            thumbnail: course.thumbnail || '',
             subtitle: course.subtitle || '',
             tagline: course.tagline || '',
             whatYouWillLearn: course.whatYouWillLearn?.length > 0 ? course.whatYouWillLearn : [''],
             requirements: course.requirements?.length > 0 ? course.requirements : [''],
             language: course.language || 'English',
             status: course.status || 'draft',
-            feedback: course.feedback || ''
-          });
+            feedback: course.feedback || '',
+            feedbackHistory: course.feedbackHistory || []
+          }));
           
           if (course.modules && course.modules.length > 0) {
             setModules(course.modules.map(m => ({
               id: m._id,
               title: m.title,
-              lessons: m.lessons.map(l => ({
+              attachments: m.attachments || [],
+              lessons: (m.lessons || []).map(l => ({
                 id: l._id,
                 title: l.title,
-                type: 'video',
-                videoUrl: l.videoUrl,
-                videoPublicId: l.videoPublicId,
+                type: l.type || 'video',
+                videoUrl: l.videoUrl || '',
+                videoPublicId: l.videoPublicId || '',
                 videoAccessType: l.videoAccessType || 'upload',
                 attachments: l.attachments || []
               })),
-              quizzes: m.quizzes.map(q => ({
+              quizzes: (m.quizzes || []).map(q => ({
                 id: q._id,
                 title: q.title,
                 description: q.description,
@@ -157,8 +163,10 @@ export default function InstructorStudio({ courseId, initialData }) {
           }
         },
         uploadPreset: 'ml_default',
-        // Security: Set type to authenticated for videos to enable signed URL protection
-        type: type === 'video' ? 'authenticated' : 'upload',
+        // Use Cloudinary's public 'upload' delivery for videos. The previous 'authenticated'
+        // mode required signed URLs that don't work without auth_token, causing 404s.
+        // Course access is still gated by the backend (only enrolled users get the URL).
+        type: 'upload',
         resourceType: type === 'thumbnail' ? 'image' : (type === 'attachment' ? 'auto' : 'video'),
         maxVideoFileSize: 3221225472, // 3 GB in bytes
         chunkSize: 10000000, // Balanced: 10 MB chunk size for compatibility and speed
@@ -194,18 +202,25 @@ export default function InstructorStudio({ courseId, initialData }) {
           if (type === 'thumbnail') {
             setCourseData(prev => ({ ...prev, thumbnail: url }));
           } else if (type === 'attachment') {
-            setModules(prev => prev.map(mod => 
-              mod.id === moduleId 
-              ? { ...mod, lessons: mod.lessons.map(l => 
-                  l.id === lessonId 
-                  ? { ...l, attachments: [...(l.attachments || []), { name: originalName, url }] } 
+            setModules(prev => prev.map(mod =>
+              mod.id === moduleId
+              ? { ...mod, lessons: mod.lessons.map(l =>
+                  l.id === lessonId
+                  ? { ...l, attachments: [...(l.attachments || []), { name: originalName, url }] }
                   : l) }
               : mod
             ));
+          } else if (type === 'moduleAttachment') {
+            // Module-level PDF/notes: attached directly to the module, not a specific lesson.
+            setModules(prev => prev.map(mod =>
+              mod.id === moduleId
+              ? { ...mod, attachments: [...(mod.attachments || []), { name: originalName, url }] }
+              : mod
+            ));
           } else {
-            setModules(prev => prev.map(mod => 
-              mod.id === moduleId 
-              ? { ...mod, lessons: mod.lessons.map(l => l.id === lessonId ? { ...l, videoUrl: url, videoPublicId: publicId, videoAccessType: 'authenticated' } : l) }
+            setModules(prev => prev.map(mod =>
+              mod.id === moduleId
+              ? { ...mod, lessons: mod.lessons.map(l => l.id === lessonId ? { ...l, videoUrl: url, videoPublicId: publicId, videoAccessType: 'upload' } : l) }
               : mod
             ));
           }
@@ -215,10 +230,13 @@ export default function InstructorStudio({ courseId, initialData }) {
     widget.open();
   };
 
-  const handleSaveCourse = async (status = 'draft') => {
-    if (courseData.status === 'pending' && status !== 'draft') {
-        alert('Course is currently under review and locked for editing.');
-        return;
+  const handleSaveCourse = async (statusArg = 'draft') => {
+    // Allow editing at any stage. If a course is under review and the user is just saving
+    // changes (not explicitly resubmitting), drop it back to draft so the admin reviews
+    // the latest version rather than a stale snapshot.
+    let status = statusArg;
+    if (courseData.status === 'pending' && statusArg !== 'pending') {
+        status = 'draft';
     }
     setLoading(true);
     setSaveStatus('Saving everything...');
@@ -269,7 +287,7 @@ export default function InstructorStudio({ courseId, initialData }) {
   };
 
   const addModule = () => {
-    setModules([...modules, { id: Date.now().toString(), title: 'New Module', lessons: [] }]);
+    setModules([...modules, { id: Date.now().toString(), title: 'New Module', lessons: [], quizzes: [], attachments: [] }]);
   };
 
   const addLesson = (moduleId) => {
@@ -338,12 +356,20 @@ export default function InstructorStudio({ courseId, initialData }) {
   };
 
   const removeAttachment = (modId, lessonId, attachmentUrl) => {
-    setModules(prev => prev.map(m => 
-      m.id === modId 
-      ? { ...m, lessons: m.lessons.map(l => 
-          l.id === lessonId 
-          ? { ...l, attachments: (l.attachments || []).filter(a => a.url !== attachmentUrl) } 
-          : l) } 
+    setModules(prev => prev.map(m =>
+      m.id === modId
+      ? { ...m, lessons: m.lessons.map(l =>
+          l.id === lessonId
+          ? { ...l, attachments: (l.attachments || []).filter(a => a.url !== attachmentUrl) }
+          : l) }
+      : m
+    ));
+  };
+
+  const removeModuleAttachment = (modId, attachmentUrl) => {
+    setModules(prev => prev.map(m =>
+      m.id === modId
+      ? { ...m, attachments: (m.attachments || []).filter(a => a.url !== attachmentUrl) }
       : m
     ));
   };
@@ -376,26 +402,23 @@ export default function InstructorStudio({ courseId, initialData }) {
                 {courseData.status}
               </div>
               
-              {courseData.status !== 'pending' && (
-                <>
-                  <button 
-                    onClick={() => handleSaveCourse(courseId ? courseData.status : 'draft')}
+              {/* Save Changes is always available so instructors can keep iterating, even on pending or published courses */}
+              <button
+                onClick={() => handleSaveCourse(courseId ? (courseData.status === 'pending' ? 'draft' : courseData.status) : 'draft')}
+                disabled={loading}
+                className="px-6 py-3 border border-slate-200 rounded-2xl font-bold text-sm text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-50"
+              >
+                {courseId ? 'Save Changes' : 'Save Draft'}
+              </button>
+              {courseData.status !== 'published' && (
+                  <button
+                    onClick={() => handleSaveCourse('pending')}
                     disabled={loading}
-                    className="px-6 py-3 border border-slate-200 rounded-2xl font-bold text-sm text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 px-8 py-3 bg-[#071739] text-white rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-slate-900/10 group disabled:opacity-50"
                   >
-                    {courseId ? 'Save Changes' : 'Save Draft'}
+                    {loading ? <Loader2 size={18} className="animate-spin" /> : (courseData.status === 'pending' ? 'Resubmit for Review' : 'Submit for Review')}
+                    {!loading && <Rocket size={18} className="group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />}
                   </button>
-                  {courseData.status !== 'published' && (
-                      <button 
-                        onClick={() => handleSaveCourse('pending')}
-                        disabled={loading}
-                        className="flex items-center gap-2 px-8 py-3 bg-[#071739] text-white rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-slate-900/10 group disabled:opacity-50"
-                      >
-                        {loading ? <Loader2 size={18} className="animate-spin" /> : 'Submit for Review'}
-                        {!loading && <Rocket size={18} className="group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />}
-                      </button>
-                  )}
-                </>
               )}
             </div>
           </div>
@@ -430,10 +453,42 @@ export default function InstructorStudio({ courseId, initialData }) {
             </Card>
         )}
 
-        <div className={clsx(
-            "grid grid-cols-1 lg:grid-cols-3 gap-10",
-            courseData.status === 'pending' && "opacity-60 pointer-events-none grayscale-[0.5]"
-        )}>
+        {/* Full Feedback History for Instructor */}
+        {courseData.feedbackHistory?.length > 0 && (
+            <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Admin Feedback History</h3>
+                    <div className="h-px flex-1 bg-slate-100"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {courseData.feedbackHistory.slice().reverse().map((f, i) => (
+                        <Card key={i} className="p-6 border-none shadow-sm bg-white hover:shadow-md transition-all">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-2">
+                                    <span className={clsx(
+                                        "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
+                                        f.statusAtTime === 'published' ? "bg-emerald-50 text-emerald-600" :
+                                        f.statusAtTime === 'rejected' ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-600"
+                                    )}>
+                                        {f.statusAtTime}
+                                    </span>
+                                    <span className="text-[8px] text-slate-400 font-bold uppercase">{new Date(f.date).toLocaleString()}</span>
+                                </div>
+                            </div>
+                            <p className="text-sm font-medium text-slate-600 leading-relaxed italic mb-4">"{f.content}"</p>
+                            <div className="flex items-center gap-2 pt-4 border-t border-slate-50">
+                                <div className="w-6 h-6 rounded-full bg-[#071739] flex items-center justify-center text-[10px] font-bold text-white">
+                                    {f.admin?.name?.charAt(0) || 'A'}
+                                </div>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{f.admin?.name || 'Administrative Reviewer'}</span>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2 space-y-8">
             <Card className="p-8">
                <h3 className="font-bold text-slate-900 text-xl mb-8 flex items-center gap-3">
@@ -737,8 +792,8 @@ export default function InstructorStudio({ courseId, initialData }) {
                        <div className="flex justify-between items-center mb-6">
                           <div className="flex items-center gap-4 flex-1">
                              <GripVertical className="text-slate-300 cursor-move" size={20} />
-                             <input 
-                                value={mod.title} 
+                             <input
+                                value={mod.title}
                                 className="text-lg font-black text-slate-900 bg-transparent border-none outline-none focus:text-[#071739]"
                                 onChange={(e) => {
                                   const nextModules = [...modules];
@@ -747,13 +802,52 @@ export default function InstructorStudio({ courseId, initialData }) {
                                 }}
                              />
                           </div>
-                          <button 
-                            onClick={() => deleteModule(mod.id)}
-                            className="text-slate-300 hover:text-red-500"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => handleUpload(mod.id, null, 'moduleAttachment')}
+                                className="flex items-center gap-1.5 text-[10px] font-black uppercase text-slate-400 hover:text-[#071739] border border-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-all"
+                              >
+                                <Paperclip size={12} /> Add PDF / Notes
+                              </button>
+                              <button
+                                onClick={() => deleteModule(mod.id)}
+                                className="text-slate-300 hover:text-red-500"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                          </div>
                        </div>
+
+                       {/* Module-level attachments */}
+                       {mod.attachments && mod.attachments.length > 0 && (
+                          <div className="mb-6 space-y-2">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Module Resources</p>
+                             {mod.attachments.map((att, aIdx) => (
+                                <div key={aIdx} className="flex items-center justify-between px-4 py-2 bg-blue-50/50 border border-blue-100 rounded-xl">
+                                   <div className="flex items-center gap-2 overflow-hidden flex-1">
+                                      <FileText size={14} className="text-blue-600 flex-shrink-0" />
+                                      <input
+                                         value={att.name}
+                                         onChange={(e) => {
+                                            const nextModules = [...modules];
+                                            nextModules[mIdx].attachments[aIdx].name = e.target.value;
+                                            setModules(nextModules);
+                                         }}
+                                         className="text-[11px] font-bold text-slate-700 bg-transparent outline-none focus:text-[#071739] w-full"
+                                         placeholder="Resource Name (e.g. Module Slides.pdf)"
+                                      />
+                                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline">View</a>
+                                   </div>
+                                   <button
+                                      onClick={() => removeModuleAttachment(mod.id, att.url)}
+                                      className="text-slate-300 hover:text-rose-500 ml-2"
+                                   >
+                                      <Trash2 size={12} />
+                                   </button>
+                                </div>
+                             ))}
+                          </div>
+                       )}
 
                        <div className="space-y-3">
                           {/* Lessons Mapping */}
@@ -801,9 +895,9 @@ export default function InstructorStudio({ courseId, initialData }) {
                                  <div className="ml-12 space-y-2">
                                    {lesson.attachments.map((att, aIdx) => (
                                      <div key={aIdx} className="flex items-center justify-between px-4 py-2 bg-white border border-slate-100 rounded-xl">
-                                       <div className="flex items-center gap-2 overflow-hidden">
+                                       <div className="flex items-center gap-2 overflow-hidden flex-1">
                                          <Paperclip size={12} className="text-slate-400 flex-shrink-0" />
-                                         <input 
+                                         <input
                                            value={att.name}
                                            onChange={(e) => {
                                              const nextModules = [...modules];
@@ -813,10 +907,11 @@ export default function InstructorStudio({ courseId, initialData }) {
                                            className="text-[10px] font-bold text-slate-600 bg-transparent outline-none focus:text-[#071739] w-full"
                                            placeholder="Resource Name (e.g. Lesson Notes.pdf)"
                                          />
+                                         <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline whitespace-nowrap">View</a>
                                        </div>
-                                       <button 
+                                       <button
                                          onClick={() => removeAttachment(mod.id, lesson.id, att.url)}
-                                         className="text-slate-300 hover:text-rose-500"
+                                         className="text-slate-300 hover:text-rose-500 ml-2"
                                        >
                                          <Trash2 size={12} />
                                        </button>

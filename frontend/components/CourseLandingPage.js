@@ -30,6 +30,7 @@ import api from '@/services/api';
 import { clsx } from 'clsx';
 import Link from 'next/link';
 import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function CourseLandingPage({ courseId, isEnrolled, onStartLearning }) {
     const [course, setCourse] = useState(null);
@@ -40,7 +41,7 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
     const [couponCode, setCouponCode] = useState('');
     const [instructorCourses, setInstructorCourses] = useState([]);
     const [reviews, setReviews] = useState([]);
-    const [user, setUser] = useState(null);
+    const { user, isLoading: authLoading } = useAuthStore();
     const [showFullDescription, setShowFullDescription] = useState(false);
     const { items, addToCart } = useCartStore();
     const isInCart = items.some(item => item._id === courseId);
@@ -62,14 +63,10 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const [courseRes, userRes] = await Promise.all([
-                    api.get(`/courses/${courseId}`),
-                    api.get('/auth/me')
-                ]);
+                const courseRes = await api.get(`/courses/${courseId}`);
                 
                 const courseData = courseRes.data.data;
                 setCourse(courseData);
-                setUser(userRes.data.data);
                 
                 if (courseData.price === 0) {
                     setPurchaseMode('individual');
@@ -149,9 +146,13 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                     <div className="lg:max-w-[700px] space-y-6">
                         {/* Breadcrumbs */}
                         <div className="flex items-center gap-2 text-sm font-medium text-blue-100">
-                            <Link href="#" className="hover:underline">{course.category}</Link>
+                            <Link href="#" className="hover:underline">
+                                {typeof course.category === 'object' ? course.category?.name : course.category}
+                            </Link>
                             <span className="text-white/40">›</span>
-                            <Link href="#" className="hover:underline">{course.subcategory || 'General'}</Link>
+                            <Link href="#" className="hover:underline">
+                                {(typeof course.subcategory === 'object' ? course.subcategory?.name : course.subcategory) || 'General'}
+                            </Link>
                             {course.topic && (
                                 <>
                                     <span className="text-white/40">›</span>
@@ -207,7 +208,7 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                                     <>
                                         <span className="text-3xl font-semibold text-white">Free</span>
                                         <span className="text-lg text-white/50 line-through font-medium">₹3,089</span>
-                                        <span className="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded text-xs font-bold uppercase tracking-widest">Free Course</span>
+                                        <span className="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded text-xs font-semibold uppercase tracking-widest">Free Course</span>
                                     </>
                                 ) : (
                                     <>
@@ -346,7 +347,7 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                                                     <>
                                                         <span className="text-xl font-semibold tracking-tight text-emerald-600">Free</span>
                                                         <span className="text-slate-400 line-through font-medium text-sm">₹3,089</span>
-                                                        <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ml-1">Free Course</span>
+                                                        <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-widest ml-1">Free Course</span>
                                                     </>
                                                 ) : (
                                                     <>

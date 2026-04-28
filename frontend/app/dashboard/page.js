@@ -1,27 +1,24 @@
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/services/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function DashboardRedirect() {
+    const { user, isAuthenticated, isLoading } = useAuthStore();
     const router = useRouter();
 
     useEffect(() => {
-        const redirectByRole = async () => {
-            try {
-                const res = await api.get('/auth/me');
-                let role = res.data.data.role.toLowerCase();
-                
-                console.log('Dashboard redirect, detected role:', role);
-                
-                if (role === 'super-admin') role = 'admin';
-                router.push(`/dashboard/${role}`);
-            } catch (err) {
+        if (!isLoading) {
+            if (!isAuthenticated) {
                 router.push('/login');
+                return;
             }
-        };
-        redirectByRole();
-    }, [router]);
+            
+            let role = user?.role?.toLowerCase() || 'student';
+            if (role === 'super-admin') role = 'admin';
+            router.push(`/dashboard/${role}`);
+        }
+    }, [isLoading, isAuthenticated, user, router]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50">

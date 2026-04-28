@@ -13,7 +13,8 @@ import {
   BookOpen,
   Trash2,
   User,
-  Globe
+  Globe,
+  AlertCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Card } from '@/components/UIElements';
@@ -229,7 +230,7 @@ export default function InstructorDashboard({ user }) {
               <div className="p-6 flex flex-col flex-1 space-y-4">
                 <div className="space-y-2">
                   <h5 className="font-semibold text-slate-800 text-sm line-clamp-2 h-10 group-hover:text-[#071739] transition-colors leading-snug">{course.title}</h5>
-                  <p className="text-[10px] text-slate-400 font-semibold tracking-tight line-clamp-1">{course.category || 'Professional Course'}</p>
+                  <p className="text-[10px] text-slate-400 font-semibold tracking-tight line-clamp-1">{(course.category?.name ?? course.category) || 'Professional Course'}</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -249,6 +250,15 @@ export default function InstructorDashboard({ user }) {
                         <span className="text-[10px] text-slate-400 line-through">₹{course.price}</span>
                     )}
                 </div>
+
+                {course.feedback && (course.status === 'needs changes' || course.status === 'rejected') && (
+                    <div className="mt-2 p-3 bg-amber-50 rounded-xl border border-amber-100/50">
+                        <p className="text-[9px] font-black text-amber-800 uppercase tracking-widest mb-1 flex items-center gap-1">
+                            <AlertCircle size={10} /> Latest Admin Note
+                        </p>
+                        <p className="text-[10px] text-amber-700 font-medium line-clamp-2 italic leading-tight">"{course.feedback}"</p>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-50 mt-auto">
                    <Link href={`/dashboard/instructor/edit/${course._id}`}>

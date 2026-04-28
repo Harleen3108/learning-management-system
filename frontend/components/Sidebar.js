@@ -38,25 +38,16 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen = false, onClose = () => {} } = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [user, setUser] = useState(null);
+  const { user, logout } = useAuthStore();
   const [openSubmenu, setOpenSubmenu] = useState(null);
 
-  useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        const res = await api.get('/auth/me');
-        setUser(res.data.data);
-      } catch (err) {
-        console.error('Failed to fetch user:', err);
-      }
-    };
-    fetchMe();
-  }, []);
+  // Removed redundant fetchMe effect as user is fetched globally
 
     const role = user?.role?.toLowerCase() || 'student';
     const isAdmin = role === 'admin' || role === 'super-admin';
@@ -127,18 +118,22 @@ export default function Sidebar() {
 
     const handleLogout = () => {
         if (window.confirm('Are you sure you want to sign out?')) {
-            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            router.push('/login');
+            logout(router);
         }
     };
 
     return (
         <div className={twMerge(
-            "h-screen bg-white border-r border-slate-100 flex flex-col fixed left-0 top-0 z-50 overflow-y-auto custom-scrollbar transition-all duration-300",
-            isAdmin ? "w-72 bg-white/90 backdrop-blur-2xl border-slate-200/50" : "w-64"
+            "h-screen bg-white border-r border-slate-100 flex flex-col fixed left-0 top-0 overflow-y-auto custom-scrollbar transition-transform duration-300 ease-in-out",
+            // z-[110] on mobile so sidebar floats above the z-[100] sticky topbar; z-50 on desktop where topbar is offset.
+            "z-[110] lg:z-50",
+            isAdmin ? "w-72 bg-white/90 backdrop-blur-2xl border-slate-200/50" : "w-64",
+            // Mobile: slide in/out based on isOpen. Desktop (lg+): always visible.
+            isOpen ? "translate-x-0" : "-translate-x-full",
+            "lg:translate-x-0"
         )}>
             <div className="p-6 flex items-center justify-between border-b border-slate-50">
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     <div>
                         <h1 className="text-xl font-semibold text-[#071739] tracking-tighter leading-none">EduFlow</h1>
                         <p className={clsx(
@@ -149,6 +144,14 @@ export default function Sidebar() {
                         </p>
                     </div>
                 </div>
+                {/* Close button — visible on mobile only */}
+                <button
+                    onClick={onClose}
+                    className="lg:hidden p-2 text-slate-400 hover:text-[#071739] hover:bg-slate-100 rounded-xl transition-all"
+                    aria-label="Close sidebar"
+                >
+                    <X size={20} />
+                </button>
             </div>
 
             <nav className="flex-1 px-4 mt-6">

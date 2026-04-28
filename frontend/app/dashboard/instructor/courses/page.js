@@ -144,7 +144,7 @@ export default function MyCoursesPage() {
                 <div className="flex-1 min-w-0 py-2">
                   <div className="flex flex-wrap items-center gap-3 mb-2">
                     {getStatusBadge(course.status)}
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{course.category}</span>
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{course.category?.name ?? course.category}</span>
                   </div>
                   <h3 className="text-xl font-semibold text-slate-900 mb-2 truncate group-hover:text-[#071739] transition-colors">
                     {course.title}

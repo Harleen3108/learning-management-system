@@ -48,8 +48,7 @@ const userSchema = new mongoose.Schema({
     },
     instructorStatus: {
         type: String,
-        enum: ['pending', 'approved', 'rejected'],
-        default: 'pending' // Default for new instructor accounts
+        enum: ['pending', 'approved', 'rejected']
     },
     instructorBio: {
         type: String,
@@ -79,13 +78,20 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-// Encrypt password using bcrypt
+// Encrypt password using bcrypt – only when password is modified.
+// IMPORTANT: must `return next()` early; otherwise the hook re-hashes
+// an already-hashed password on every save, breaking authentication.
 userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) {
-        next();
+        return next();
     }
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        return next();
+    } catch (err) {
+        return next(err);
+    }
 });
 
 // Match user entered password to hashed password in database

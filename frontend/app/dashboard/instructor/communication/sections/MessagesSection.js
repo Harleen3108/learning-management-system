@@ -16,6 +16,7 @@ import { Card } from '@/components/UIElements';
 import api from '@/services/api';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function MessagesSection({ selectedCourse, courses }) {
     const [students, setStudents] = useState([]);
@@ -67,9 +68,9 @@ export default function MessagesSection({ selectedCourse, courses }) {
         setLoadingMessages(true);
         try {
             // Sort IDs to ensure consistent conversation ID
-            // In a real app, I'd get the current user ID from state or context
-            const meRes = await api.get('/auth/me');
-            const myId = meRes.data.data._id;
+            // Get the current user ID from Zustand store
+            const user = useAuthStore.getState().user;
+            const myId = user?._id;
             const convId = [selectedCourse, activeStudent._id, myId].sort().join('-');
             const res = await api.get(`/communication/messages?conversationId=${convId}`);
             setMessages(res.data.data);

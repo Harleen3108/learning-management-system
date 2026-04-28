@@ -99,17 +99,21 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
     const handleUpdateStatus = async (status, feedback = null) => {
         setUpdating(true);
         try {
-            await api.patch(`/courses/${courseId}/status`, { status, feedback });
-            // Refresh local data
-            const [cRes, aRes] = await Promise.all([
-                api.get(`/courses/${courseId}`),
-                api.get(`/courses/${courseId}/audit-history`)
-            ]);
-            setCourse(cRes.data.data);
-            setAuditHistory(aRes.data.data);
+            // Send update and get refreshed course data
+            const res = await api.patch(`/courses/${courseId}/status`, { status, feedback });
+            setCourse(res.data.data);
+            setGlobalFeedback(''); // Clear feedback on success
+            alert('Feedback and status updated successfully!');
+            
+            // Refresh audit history
+            const auditRes = await api.get(`/courses/${courseId}/audit-history`);
+            setAuditHistory(auditRes.data.data);
+            
             if (onStatusUpdate) onStatusUpdate(status);
         } catch (err) {
             console.error('Status update failed:', err);
+            const errorMsg = err.response?.data?.message || err.message || 'Failed to update status';
+            alert(`Failed to send feedback: ${errorMsg}`);
         } finally {
             setUpdating(false);
         }
@@ -168,11 +172,24 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[600px] space-y-4">
             <Loader2 className="animate-spin text-primary" size={40} />
-            <p className="text-slate-400 font-black uppercase text-[10px] tracking-widest animate-pulse">Aggregating Intelligence...</p>
+            <p className="text-slate-400 font-semibold uppercase text-[10px] tracking-widest animate-pulse">Aggregating Intelligence...</p>
         </div>
     );
 
-    if (!course) return <div className="p-20 text-center font-black text-slate-400">Course Intelligence Unavailable.</div>;
+    if (!course) return <div className="p-20 text-center font-semibold text-slate-400">Course Intelligence Unavailable.</div>;
+    
+    // Dynamic Stats Calculation
+    const totalLessons = course.modules?.reduce((acc, mod) => acc + (mod.lessons?.length || 0), 0) || 0;
+    const totalDurationSeconds = course.modules?.reduce((acc, mod) => {
+        return acc + (mod.lessons?.reduce((lAcc, lesson) => lAcc + (lesson.duration || 0), 0) || 0);
+    }, 0) || 0;
+
+    const formatDuration = (seconds) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m`;
+    };
 
     const stats = [
         { label: 'Enrolled Students', value: analytics?.totalEnrolled || 0, icon: Users, color: 'text-primary', bg: 'bg-blue-50' },
@@ -184,15 +201,15 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
     return (
         <div className="space-y-10 pb-20">
             {/* Admin Review Top Bar (Sticky) */}
-            <div className="sticky top-0 z-[60] -mx-6 md:-mx-10 px-6 md:px-10 py-4 bg-white/80 backdrop-blur-xl border-b border-slate-100 flex flex-wrap items-center justify-between gap-6 shadow-sm">
+            <div className="sticky top-0 z-[60] -mx-4 lg:-mx-8 px-4 lg:px-8 py-4 bg-white/80 backdrop-blur-xl border-b border-slate-100 flex flex-wrap items-center justify-between gap-6 shadow-sm">
                 <div className="flex items-center gap-6">
                     <Link href="/dashboard/admin/courses" className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl transition-all flex items-center gap-2 group">
                         <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">Back to Courses</span>
+                        <span className="hidden md:block text-[10px] font-semibold uppercase tracking-widest">Back to Courses</span>
                     </Link>
                     <div className="h-8 w-px bg-slate-100 hidden md:block"></div>
                     <div className={clsx(
-                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] border shadow-sm flex items-center gap-2",
+                        "px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-[0.2em] border shadow-sm flex items-center gap-2",
                         course.status === 'pending' ? "bg-orange-500 text-white border-orange-400" :
                         course.status === 'published' ? "bg-emerald-500 text-white border-emerald-400" :
                         course.status === 'rejected' ? "bg-rose-500 text-white border-rose-400" : "bg-slate-500 text-white border-slate-400"
@@ -202,16 +219,16 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                     </div>
                     <div className="hidden md:flex items-center gap-8">
                         <div className="space-y-0.5">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Instructor</p>
-                            <p className="text-xs font-bold text-slate-900 leading-none">{course.instructor?.name}</p>
+                            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest leading-none">Instructor</p>
+                            <p className="text-xs font-semibold text-slate-900 leading-none">{course.instructor?.name}</p>
                         </div>
                         <div className="space-y-0.5">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Submitted</p>
-                            <p className="text-xs font-bold text-slate-900 leading-none">{new Date(course.createdAt).toLocaleDateString()}</p>
+                            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest leading-none">Submitted</p>
+                            <p className="text-xs font-semibold text-slate-900 leading-none">{new Date(course.createdAt).toLocaleDateString()}</p>
                         </div>
                         <div className="space-y-0.5">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Deadline</p>
-                            <p className="text-xs font-bold text-rose-500 leading-none">48 Hours Remaining</p>
+                            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest leading-none">Deadline</p>
+                            <p className="text-xs font-semibold text-rose-500 leading-none">48 Hours Remaining</p>
                         </div>
                     </div>
                 </div>
@@ -221,7 +238,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                         <button 
                             onClick={() => handleUpdateStatus('published')}
                             disabled={updating}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-200 active:scale-95 disabled:opacity-50"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-200 active:scale-95 disabled:opacity-50"
                         >
                             Approve
                         </button>
@@ -229,7 +246,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                         <button 
                             onClick={() => handleUpdateStatus('pending')}
                             disabled={updating}
-                            className="bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-rose-200 active:scale-95 disabled:opacity-50"
+                            className="bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-xl font-semibold text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-rose-200 active:scale-95 disabled:opacity-50"
                         >
                             Unapprove
                         </button>
@@ -238,7 +255,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                     <button 
                         onClick={() => handleUpdateStatus('needs changes', globalFeedback)}
                         disabled={updating || !globalFeedback}
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-orange-200 active:scale-95 disabled:opacity-50"
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-orange-200 active:scale-95 disabled:opacity-50"
                     >
                         Needs Changes
                     </button>
@@ -247,7 +264,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                         <button 
                             onClick={() => handleUpdateStatus('rejected', globalFeedback)}
                             disabled={updating || !globalFeedback}
-                            className="bg-white border-2 border-rose-100 text-rose-500 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-all active:scale-95 disabled:opacity-50"
+                            className="bg-white border-2 border-rose-100 text-rose-500 px-6 py-3 rounded-xl font-semibold text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-all active:scale-95 disabled:opacity-50"
                         >
                             Reject
                         </button>
@@ -259,25 +276,25 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
             </div>
 
             {/* Dark Hero Section for Admin Review */}
-            <div className="bg-[#022c22] text-white -mx-4 sm:-mx-6 lg:-mx-8 p-8 md:p-12 relative overflow-hidden rounded-[2.5rem] mb-10 shadow-2xl">
+            <div className="bg-[#071739] text-white -mx-4 lg:-mx-8 p-8 md:p-12 relative overflow-hidden mb-10 shadow-2xl">
                 <div className="max-w-5xl space-y-6 relative z-10">
                     {/* Breadcrumbs */}
-                    <div className="flex items-center gap-2 text-sm font-bold text-[#ecfdf5]">
-                        <span>{course.category}</span>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-blue-100/80">
+                        <span>{course.category?.name ?? course.category}</span>
                         <span className="text-white/40">›</span>
-                        <span>{course.subcategory || 'General'}</span>
-                        <span className="text-white/40 ml-4 px-3 py-1 bg-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest text-white">Reviewing curriculum</span>
+                        <span>{(course.subcategory?.name ?? course.subcategory) || 'General'}</span>
+                        <span className="text-white/40 ml-4 px-3 py-1 bg-white/10 rounded-lg text-[9px] font-semibold uppercase tracking-widest text-white">Reviewing curriculum</span>
                     </div>
 
                     <div className="space-y-4">
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-[1.1]">{course.title}</h1>
+                        <h1 className="text-4xl md:text-5xl font-semibold text-white tracking-tight leading-[1.1]">{course.title}</h1>
                         <p className="text-xl text-slate-300 font-medium max-w-2xl">{course.subtitle || course.tagline}</p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-4 pt-2">
-                        <div className="flex items-center gap-1.5 bg-[#bef264] text-[#3d3c0a] px-2 py-1 rounded-sm font-black text-[10px] uppercase">Bestseller</div>
-                        <div className="flex items-center gap-1.5 bg-[#ecfdf5] text-[#022c22] px-2 py-1 rounded-sm font-black text-[10px] uppercase">Role Play</div>
-                        <div className="flex items-center gap-1.5 text-amber-400 font-black">
+                        <div className="flex items-center gap-1.5 bg-[#bef264] text-[#3d3c0a] px-2 py-1 rounded-sm font-semibold text-[10px] uppercase">Bestseller</div>
+                        <div className="flex items-center gap-1.5 bg-blue-50 text-[#071739] px-2 py-1 rounded-sm font-semibold text-[10px] uppercase">Role Play</div>
+                        <div className="flex items-center gap-1.5 text-amber-400 font-semibold">
                             <span>4.8</span>
                             <div className="flex">{[...Array(5)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}</div>
                         </div>
@@ -312,11 +329,11 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                 <stat.icon size={24} />
                             </div>
                             <div className="flex flex-col items-end">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                                <h4 className="text-3xl font-black text-slate-900 mt-1">{stat.value}</h4>
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                                <h4 className="text-3xl font-semibold text-slate-900 mt-1">{stat.value}</h4>
                             </div>
                         </div>
-                        <div className="mt-6 flex items-center gap-2 text-[10px] font-black text-emerald-500 bg-emerald-50 px-3 py-1.5 rounded-full w-fit">
+                        <div className="mt-6 flex items-center gap-2 text-[10px] font-semibold text-emerald-500 bg-emerald-50 px-3 py-1.5 rounded-full w-fit">
                             <TrendingUp size={14} /> +8.4% this week
                         </div>
                     </Card>
@@ -328,22 +345,22 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                 <div className="lg:col-span-2 space-y-10">
                     {/* Detailed Curriculum Metadata */}
                     <Card className="p-10 bg-white border-none shadow-sm rounded-[2.5rem]">
-                        <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3 mb-8">
+                        <h3 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3 mb-8">
                             <Info className="text-primary" /> Course Synopsis
                         </h3>
                         
                         <div className="space-y-8">
                             <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Subtitle</p>
-                                <p className="text-lg font-bold text-slate-800 leading-snug">{course.subtitle || 'No subtitle provided.'}</p>
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Subtitle</p>
+                                <p className="text-lg font-semibold text-slate-800 leading-snug">{course.subtitle || 'No subtitle provided.'}</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">What you'll learn</p>
+                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-4">What you'll learn</p>
                                     <div className="space-y-3">
                                         {course.whatYouWillLearn?.length > 0 ? course.whatYouWillLearn.map((point, i) => (
-                                            <div key={i} className="flex gap-3 text-xs font-bold text-slate-600">
+                                            <div key={i} className="flex gap-3 text-xs font-semibold text-slate-600">
                                                 <Check className="shrink-0 text-emerald-500" size={14} />
                                                 <span>{point}</span>
                                             </div>
@@ -351,10 +368,10 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                     </div>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Requirements</p>
+                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Requirements</p>
                                     <div className="space-y-3">
                                         {course.requirements?.length > 0 ? course.requirements.map((req, i) => (
-                                            <div key={i} className="flex gap-3 text-xs font-bold text-slate-600">
+                                            <div key={i} className="flex gap-3 text-xs font-semibold text-slate-600">
                                                 <AlertCircle className="shrink-0 text-orange-400" size={14} />
                                                 <span>{req}</span>
                                             </div>
@@ -364,7 +381,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                             </div>
 
                             <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Detailed Description</p>
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Detailed Description</p>
                                 <div className="text-xs font-medium text-slate-500 leading-relaxed max-h-40 overflow-y-auto pr-4 custom-scrollbar">
                                     <div dangerouslySetInnerHTML={{ __html: course.description.replace(/\n/g, '<br />') }} />
                                 </div>
@@ -374,10 +391,10 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
 
                     <Card className="p-10 bg-white border-none shadow-sm rounded-[2.5rem]">
                         <div className="flex items-center justify-between mb-10">
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                            <h3 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
                                 <BarChart3 className="text-primary" /> Curriculum Assessment
                             </h3>
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
                                 {course.modules?.length || 0} Modules Total
                             </span>
                         </div>
@@ -396,14 +413,23 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                     >
                                         <div className="flex items-center gap-4">
                                             <span className={clsx(
-                                                "w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm",
+                                                "w-10 h-10 rounded-2xl flex items-center justify-center font-semibold text-sm",
                                                 selectedModule === mIndex ? "bg-white/10 text-white" : "bg-white text-slate-900 shadow-sm"
                                             )}>
                                                 {mIndex + 1}
                                             </span>
-                                            <h4 className="font-black text-lg tracking-tight">{module.title}</h4>
+                                            <h4 className={clsx(
+                                                "font-semibold text-lg tracking-tight",
+                                                selectedModule === mIndex ? "text-white" : "text-slate-900"
+                                            )}>{module.title}</h4>
                                         </div>
-                                        <ChevronRight size={20} className={clsx("transition-transform duration-300", selectedModule === mIndex && "rotate-90")} />
+                                        <ChevronRight 
+                                            size={20} 
+                                            className={clsx(
+                                                "transition-transform duration-300", 
+                                                selectedModule === mIndex ? "rotate-90 text-white" : "text-slate-400"
+                                            )} 
+                                        />
                                     </div>
 
                                     <AnimatePresence mode="popLayout">
@@ -423,13 +449,13 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                                             <Play size={16} className="fill-current" />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-black text-slate-800 tracking-tight">{lesson.title}</p>
+                                                            <p className="text-sm font-semibold text-slate-800 tracking-tight">{lesson.title}</p>
                                                             <div className="flex items-center gap-3 mt-1">
-                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                                                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest flex items-center gap-1">
                                                                     <Clock size={12} /> {lesson.duration ? `${Math.floor(lesson.duration/60)}m` : 'Streaming'}
                                                                 </span>
                                                                 {lesson.feedback && (
-                                                                    <span className="text-[9px] text-orange-500 font-black uppercase tracking-widest flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded">
+                                                                    <span className="text-[9px] text-orange-500 font-semibold uppercase tracking-widest flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded">
                                                                         <MessageSquare size={10} /> Has Feedback
                                                                     </span>
                                                                 )}
@@ -437,7 +463,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                                         </div>
                                                         <button 
                                                             onClick={() => handlePreviewLesson(lesson)}
-                                                            className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-primary"
+                                                            className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest hover:text-primary"
                                                         >
                                                             Review
                                                         </button>
@@ -452,15 +478,15 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                                             <HelpCircle size={16} />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-black text-slate-800 tracking-tight">{quiz.title}</p>
+                                                            <p className="text-sm font-semibold text-slate-800 tracking-tight">{quiz.title}</p>
                                                             <div className="flex items-center gap-3 mt-1">
-                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                                                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest flex items-center gap-1">
                                                                     {quiz.questions?.length || 0} Questions
                                                                 </span>
                                                             </div>
                                                         </div>
                                                         <button 
-                                                            className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-amber-600"
+                                                            className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest hover:text-amber-600"
                                                         >
                                                             Audit Quiz
                                                         </button>
@@ -478,7 +504,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                     {/* Admin Review Side Panel */}
                     <Card className="p-8 bg-slate-900 text-white rounded-[2.5rem] border-none shadow-2xl relative overflow-hidden group">
                         <div className="relative z-10 space-y-8">
-                            <h3 className="text-xl font-black flex items-center gap-2">
+                            <h3 className="text-xl font-semibold flex items-center gap-2">
                                 <ShieldAlert className="text-orange-400" /> Review Intelligence
                             </h3>
                             
@@ -490,7 +516,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                     { label: 'Policy Compliance', score: scores.compliance, color: 'bg-purple-500' }
                                 ].map((s, i) => (
                                     <div key={i} className="space-y-2">
-                                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/50">
+                                        <div className="flex justify-between text-[10px] font-semibold uppercase tracking-widest text-white/50">
                                             <span>{s.label}</span>
                                             <span>{s.score}%</span>
                                         </div>
@@ -508,16 +534,16 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                             {/* Key Stats */}
                             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
                                 <div>
-                                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Total Duration</p>
-                                    <p className="text-lg font-black tracking-tight">12h 45m</p>
+                                    <p className="text-[9px] font-semibold text-white/40 uppercase tracking-widest">Total Duration</p>
+                                    <p className="text-lg font-semibold tracking-tight">{formatDuration(totalDurationSeconds)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Total Lessons</p>
-                                    <p className="text-lg font-black tracking-tight">154 units</p>
+                                    <p className="text-[9px] font-semibold text-white/40 uppercase tracking-widest">Total Lessons</p>
+                                    <p className="text-lg font-semibold tracking-tight">{totalLessons} units</p>
                                 </div>
                             </div>
 
-                            <button className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">
+                            <button className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl font-semibold text-[10px] uppercase tracking-widest transition-all">
                                 Generate Full Audit Report
                             </button>
                         </div>
@@ -526,7 +552,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
 
                     {/* Admin Review Checklist */}
                     <Card className="p-8 bg-white rounded-[2.5rem] border-none shadow-sm space-y-6">
-                        <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                        <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
                             <ClipboardCheck className="text-primary" /> Validation Checklist
                         </h3>
                         <div className="space-y-3">
@@ -542,7 +568,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                     key={item.key}
                                     className="flex items-center justify-between p-4 rounded-2xl border border-slate-50 hover:bg-slate-50 transition-all cursor-pointer group"
                                 >
-                                    <span className="text-[11px] font-bold text-slate-600">{item.label}</span>
+                                    <span className="text-[11px] font-semibold text-slate-600">{item.label}</span>
                                     <input 
                                         type="checkbox" 
                                         checked={checklist[item.key]}
@@ -554,8 +580,8 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                         </div>
                         <div className="pt-4 border-t border-slate-50">
                             <div className="flex justify-between items-center px-2">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Checklist Status</span>
-                                <span className="text-[10px] font-black text-emerald-500 uppercase">
+                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Checklist Status</span>
+                                <span className="text-[10px] font-semibold text-emerald-500 uppercase">
                                     {Object.values(checklist).filter(v => v).length} / 6 Verified
                                 </span>
                             </div>
@@ -564,27 +590,27 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
 
                     {/* Pricing & Instructor Info */}
                     <Card className="p-8 bg-white rounded-[2.5rem] border-none shadow-sm space-y-6">
-                        <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                        <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
                             <Tag className="text-emerald-500" size={20} /> Pricing & Instructor
                         </h3>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                 <div>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Base Price</p>
-                                    <p className="text-lg font-black text-slate-400 line-through decoration-rose-500/30 decoration-2 italic">₹{course.price || '0'}</p>
+                                    <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Base Price</p>
+                                    <p className="text-lg font-semibold text-slate-400 line-through decoration-rose-500/30 decoration-2 italic">₹{course.price || '0'}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Offer Price</p>
-                                    <p className="text-2xl font-black text-slate-900">₹{course.discountPrice || '0'}</p>
+                                    <p className="text-[9px] font-semibold text-emerald-500 uppercase tracking-widest">Offer Price</p>
+                                    <p className="text-2xl font-semibold text-slate-900">₹{course.discountPrice || '0'}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-blue-100/50 group">
-                                <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-200 transition-transform group-hover:rotate-6">
+                                <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white font-semibold text-lg shadow-lg shadow-blue-200 transition-transform group-hover:rotate-6">
                                     {course.instructor?.name?.charAt(0) || 'I'}
                                 </div>
                                 <div>
-                                    <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mb-1">Lead Instructor</p>
-                                    <p className="text-sm font-black text-slate-900 leading-none">{course.instructor?.name}</p>
+                                    <p className="text-[9px] font-semibold text-primary uppercase tracking-widest leading-none mb-1">Lead Instructor</p>
+                                    <p className="text-sm font-semibold text-slate-900 leading-none">{course.instructor?.name}</p>
                                     <p className="text-[10px] text-slate-500 font-bold mt-1.5 opacity-60">{course.instructor?.email}</p>
                                 </div>
                             </div>
@@ -599,10 +625,10 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                 <div className="lg:col-span-2">
                     <Card className="p-10 bg-white border-none shadow-sm rounded-[2.5rem] flex flex-col">
                         <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                            <h3 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
                                 <ShieldCheck className="text-primary" /> Administrative Directives
                             </h3>
-                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest bg-blue-50 px-3 py-1.5 rounded-full">
+                            <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-widest bg-blue-50 px-3 py-1.5 rounded-full">
                                 {auditHistory.length} Recorded Actions
                             </span>
                         </div>
@@ -616,7 +642,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                 auditHistory.map((item) => (
                                     <div key={item._id} className="p-6 rounded-3xl border border-blue-50 bg-blue-50/10 hover:bg-blue-50/20 transition-all relative group">
                                         <div className="flex items-center justify-between mb-3">
-                                            <span className="text-[10px] text-primary font-black uppercase tracking-widest bg-white px-2 py-1 rounded-lg border border-blue-100 shadow-sm">
+                                            <span className="text-[10px] text-primary font-semibold uppercase tracking-widest bg-white px-2 py-1 rounded-lg border border-blue-100 shadow-sm">
                                                 {item.action.replace(/_/g, ' ')}
                                             </span>
                                             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
@@ -627,10 +653,10 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                             {item.details}
                                         </p>
                                         <div className="mt-4 flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-black text-white">
+                                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-semibold text-white">
                                                 {item.user?.name?.charAt(0) || 'A'}
                                             </div>
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.user?.name} · {item.user?.role}</span>
+                                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{item.user?.name} · {item.user?.role}</span>
                                         </div>
                                     </div>
                                 ))
@@ -642,7 +668,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                 {/* Sidebar Column - Row 2 */}
                 <div className="lg:col-span-1 flex flex-col gap-10">
                     <Card className="p-8 bg-white rounded-[2.5rem] border-none shadow-sm flex flex-col">
-                        <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2 tracking-tight">
+                        <h3 className="text-xl font-semibold text-slate-900 mb-6 flex items-center gap-2 tracking-tight">
                             <MessageSquare className="text-primary" /> Feedback Loop
                         </h3>
                         <div className="space-y-4">
@@ -655,19 +681,49 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                             <button 
                                 onClick={() => handleUpdateStatus('rejected', globalFeedback)}
                                 disabled={updating || !globalFeedback.trim()}
-                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50"
                             >
                                 {updating ? <Loader2 className="animate-spin mx-auto" size={16} /> : 'Send & Request Revision'}
                             </button>
                         </div>
+
+                        {/* Feedback History List */}
+                        {course.feedbackHistory?.length > 0 && (
+                            <div className="mt-8 pt-8 border-t border-slate-100 space-y-4">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Feedback History</h4>
+                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {course.feedbackHistory.slice().reverse().map((f, i) => (
+                                        <div key={i} className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100/50">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className={clsx(
+                                                    "px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest",
+                                                    f.statusAtTime === 'published' ? "bg-emerald-50 text-emerald-600" :
+                                                    f.statusAtTime === 'rejected' ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-600"
+                                                )}>
+                                                    {f.statusAtTime}
+                                                </span>
+                                                <span className="text-[8px] text-slate-400 font-bold uppercase">{new Date(f.date).toLocaleString()}</span>
+                                            </div>
+                                            <p className="text-xs text-slate-600 font-medium leading-relaxed italic">"{f.content}"</p>
+                                            <div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase">
+                                                <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] text-slate-500">
+                                                    {f.admin?.name?.charAt(0) || 'A'}
+                                                </div>
+                                                {f.admin?.name || 'Admin'}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </Card>
 
                     <Card className="p-8 bg-white border-none shadow-sm rounded-[2.5rem] flex flex-col">
                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                            <h3 className="text-xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
                                 <Star className="text-orange-400" /> Student Sentiment
                             </h3>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-full">
+                            <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-full">
                                 {reviews.length} RL
                             </span>
                         </div>
@@ -682,11 +738,11 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                     <div key={review._id} className="p-4 rounded-2xl border border-slate-50 bg-slate-50/30 hover:bg-slate-50/50 transition-all group relative">
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex gap-2">
-                                                <div className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center font-black text-slate-400 border border-slate-50 text-[10px]">
+                                                <div className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center font-semibold text-slate-400 border border-slate-50 text-[10px]">
                                                     {review.student?.name?.charAt(0) || 'S'}
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-black text-slate-900 text-[11px] tracking-tight">{review.student?.name}</h4>
+                                                    <h4 className="font-semibold text-slate-900 text-[11px] tracking-tight">{review.student?.name}</h4>
                                                     <div className="flex text-orange-400 mt-0.5">
                                                         {[...Array(5)].map((_, i) => (
                                                             <Star key={i} size={8} fill={i < review.rating ? "currentColor" : "none"} />
@@ -695,7 +751,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                                 </div>
                                             </div>
                                             <span className={clsx(
-                                                "px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest",
+                                                "px-2 py-0.5 rounded-md text-[7px] font-semibold uppercase tracking-widest",
                                                 review.sentimentLabel === 'Positive' ? "bg-emerald-50 text-emerald-600" :
                                                 review.sentimentLabel === 'Constructive' ? "bg-blue-50 text-primary" : "bg-slate-100 text-slate-500"
                                             )}>
@@ -755,7 +811,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                 {previewLoading ? (
                                     <div className="flex flex-col items-center gap-4 text-white/40">
                                         <Loader2 className="animate-spin" size={32} />
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em]">Acquiring Token...</p>
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em]">Acquiring Token...</p>
                                     </div>
                                 ) : lessonVideoUrl ? (
                                     <video 
@@ -767,7 +823,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                 ) : (
                                     <div className="flex flex-col items-center gap-4 text-white/40">
                                         <AlertCircle size={48} className="opacity-20" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest leading-loose text-center px-10">Stream unavailable. Verify instructor credentials and Cloudinary signature logic.</p>
+                                        <p className="text-[10px] font-semibold uppercase tracking-widest leading-loose text-center px-10">Stream unavailable. Verify instructor credentials and Cloudinary signature logic.</p>
                                     </div>
                                 )}
                             </div>
@@ -775,13 +831,13 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                             {/* Right: Lesson Info & Feedback */}
                             <div className="flex-1 bg-slate-900 p-10 flex flex-col border-l border-white/5 no-scrollbar overflow-y-auto">
                                 <div className="mb-10">
-                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-3">Auditing Unit</p>
-                                    <h3 className="text-3xl font-black text-white tracking-tight leading-none mb-4">{previewLesson.title}</h3>
+                                    <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-[0.3em] mb-3">Auditing Unit</p>
+                                    <h3 className="text-3xl font-semibold text-white tracking-tight leading-none mb-4">{previewLesson.title}</h3>
                                     <p className="text-white/40 text-xs font-bold leading-relaxed">{previewLesson.description || 'No descriptive metadata provided for this industrial unit.'}</p>
                                 </div>
 
                                 <div className="space-y-6 mt-auto">
-                                    <div className="flex items-center gap-2 text-[10px] font-black text-white/30 uppercase tracking-widest mb-2">
+                                    <div className="flex items-center gap-2 text-[10px] font-semibold text-white/30 uppercase tracking-widest mb-2">
                                         <MessageSquare size={14} className="text-orange-400" /> Granular Feedback
                                     </div>
                                     <textarea 
@@ -793,7 +849,7 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                     <button 
                                         onClick={handleSaveLessonFeedback}
                                         disabled={savingFeedback}
-                                        className="w-full py-5 bg-primary hover:bg-blue-700 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl shadow-primary/20 disabled:opacity-50 active:scale-95"
+                                        className="w-full py-5 bg-primary hover:bg-blue-700 text-white rounded-[1.5rem] font-semibold text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl shadow-primary/20 disabled:opacity-50 active:scale-95"
                                     >
                                         {savingFeedback ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                                         {savingFeedback ? 'Processing Audit...' : 'Commit Feedback'}

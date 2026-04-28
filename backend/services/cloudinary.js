@@ -32,16 +32,31 @@ exports.generateSignature = (paramsToSign) => {
 };
 
 /**
- * Generate a signed URL for secure video streaming
- * @param {String} publicId 
- * @param {String} type - 'upload' or 'authenticated'
+ * Generate a delivery URL for a video.
+ *
+ * - For public (`upload`) delivery, no signing is needed — the URL just works.
+ * - For `authenticated` delivery, we generate a signed URL with `sign_url: true`.
+ *
+ * IMPORTANT lessons learned:
+ *  • Don't pass `expires_at` — it only works with the auth_token feature; otherwise
+ *    it poisons the signature computation and Cloudinary returns 404.
+ *  • Don't force `format: 'mp4'` — that triggers on-the-fly transcoding which
+ *    authenticated delivery may reject (404). Cloudinary serves the original
+ *    extension when no format is specified.
  */
-exports.getSignedUrl = (publicId, type = 'authenticated') => {
-    // Generate a signed URL with 1 hour expiration
+exports.getSignedUrl = (publicId, type = 'upload') => {
+    if (type === 'authenticated') {
+        return cloudinary.url(publicId, {
+            resource_type: 'video',
+            type: 'authenticated',
+            sign_url: true,
+            secure: true
+        });
+    }
+    // Public/upload — no signing required.
     return cloudinary.url(publicId, {
         resource_type: 'video',
-        type: type, 
-        sign_url: true,
-        expires_at: Math.floor(Date.now() / 1000) + 3600 // Valid for 1 hour
+        type: 'upload',
+        secure: true
     });
 };

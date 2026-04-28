@@ -71,15 +71,34 @@ exports.getCourseReviews = async (req, res, next) => {
 // @access  Private (Student)
 exports.addReview = async (req, res, next) => {
     try {
-        req.body.course = req.params.courseId;
+        // The route can pass course via URL params or body — handle both shapes.
+        const courseId = req.params.courseId || req.body.course;
+        req.body.course = courseId;
         req.body.student = req.user.id;
 
-        const course = await Course.findById(req.params.courseId);
+        const course = await Course.findById(courseId);
         if (!course) {
             return res.status(404).json({ success: false, message: 'Course not found' });
         }
 
         const review = await Review.create(req.body);
+
+        // Notify the course's instructor
+        try {
+            const { notifyUser } = require('../services/notify');
+            const User = require('../models/User');
+            const reviewer = await User.findById(req.user.id).select('name');
+            if (course.instructor) {
+                await notifyUser({
+                    recipient: course.instructor,
+                    type: 'new_review',
+                    title: `New ${req.body.rating || 5}★ review`,
+                    message: `${reviewer?.name || 'A student'} reviewed "${course.title}".`,
+                    link: '/dashboard/instructor/performance?section=reviews',
+                    entity: { type: 'Course', id: course._id }
+                });
+            }
+        } catch (e) { console.error('[notify] new review:', e.message); }
 
         res.status(201).json({ success: true, data: review });
     } catch (err) {

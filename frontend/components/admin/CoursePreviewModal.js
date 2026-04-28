@@ -45,9 +45,9 @@ export default function CoursePreviewModal({ course, isOpen, onClose, onApprove,
                             <div className="max-w-7xl mx-auto space-y-8 relative z-10">
                                 {/* Breadcrumbs */}
                                 <div className="flex items-center gap-2 text-white/60 font-black text-[10px] uppercase tracking-[0.2em]">
-                                    <span>{course.category}</span>
+                                    <span>{course.category?.name ?? course.category}</span>
                                     <ChevronRight size={14} />
-                                    <span>{course.subcategory || 'Advanced Curriculum'}</span>
+                                    <span>{(course.subcategory?.name ?? course.subcategory) || 'Advanced Curriculum'}</span>
                                 </div>
 
                                 <div className="space-y-4">

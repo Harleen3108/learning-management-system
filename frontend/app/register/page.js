@@ -22,6 +22,7 @@ import {
 import { clsx } from 'clsx';
 import HomeNavbar from '@/components/HomeNavbar';
 import { useGoogleLogin } from '@react-oauth/google';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function Register() {
     const [step, setStep] = useState(1);
@@ -78,7 +79,10 @@ export default function Register() {
             const { token, data: user } = res.data;
             let role = user.role.toLowerCase();
             
-            if (token) localStorage.setItem('token', token);
+            if (token) {
+                localStorage.setItem('token', token);
+                useAuthStore.getState().setUser(user);
+            }
             
             if (role === 'super-admin') role = 'admin';
             
@@ -287,6 +291,7 @@ export default function Register() {
                                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#071739]" size={18} />
                                                 <input 
                                                     type="email" 
+                                                    autoComplete="email"
                                                     required
                                                     className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
                                                     value={formData.email}
@@ -300,6 +305,7 @@ export default function Register() {
                                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#071739]" size={18} />
                                                 <input 
                                                     type="password" 
+                                                    autoComplete="new-password"
                                                     required
                                                     className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
                                                     value={formData.password}
@@ -344,6 +350,7 @@ export default function Register() {
                                                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Full Name</label>
                                                 <input 
                                                     type="text" 
+                                                    autoComplete="name"
                                                     required
                                                     className="w-full px-5 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
                                                     value={formData.name}
@@ -354,6 +361,7 @@ export default function Register() {
                                                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">Phone</label>
                                                 <input 
                                                     type="tel" 
+                                                    autoComplete="tel"
                                                     required
                                                     className="w-full px-5 py-4 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-[#071739]/20 transition-all font-normal text-slate-800"
                                                     value={formData.phone}

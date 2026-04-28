@@ -2,6 +2,9 @@ import './globals.css'
 import { Inter, DM_Sans } from 'next/font/google'
 import ProgressBar from '@/components/ProgressBar'
 import { Suspense } from 'react'
+import logo from '@/assets/favicon_circle.png'
+import GoogleAuthProviderWrapper from '@/components/GoogleAuthProvider'
+import AuthInitializer from '@/components/AuthInitializer'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -17,11 +20,13 @@ const dmSans = DM_Sans({
 })
 
 export const metadata = {
-  title: 'LMS - Learning Management System',
+  title: 'EduFlow-Learning Management System',
   description: 'A comprehensive full-stack LMS platform',
+  icons: {
+    icon: logo.src,
+  },
 }
 
-import GoogleAuthProviderWrapper from '@/components/GoogleAuthProvider'
 
 export default function RootLayout({ children }) {
   return (
@@ -30,6 +35,7 @@ export default function RootLayout({ children }) {
         <GoogleAuthProviderWrapper>
           <Suspense fallback={null}>
               <ProgressBar />
+              <AuthInitializer />
           </Suspense>
           {children}
         </GoogleAuthProviderWrapper>

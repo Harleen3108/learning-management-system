@@ -5,6 +5,7 @@ import axios from 'axios';
 import api from '@/services/api';
 import { clsx } from 'clsx';
 import DashboardLayout from '@/components/DashboardLayout';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Card } from '@/components/UIElements';
 import { 
     User, 
@@ -24,11 +25,11 @@ import { motion } from 'framer-motion';
 
 export default function EditProfile() {
     const router = useRouter();
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
+    const { user: authUser, isLoading: authLoading } = useAuthStore();
     
     const [formData, setFormData] = useState({
         name: '',
@@ -46,33 +47,23 @@ export default function EditProfile() {
     });
 
     useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const res = await api.get('/auth/me');
-                const user = res.data.data;
-                setFormData({
-                    name: user.name || '',
-                    email: user.email || '',
-                    phone: user.phone || '',
-                    instructorBio: user.instructorBio || '',
-                    instructorSpecialty: user.instructorSpecialty || '',
-                    profilePhoto: user.profilePhoto || '',
-                    socialLinks: user.socialLinks || {
-                        website: '',
-                        linkedin: '',
-                        twitter: '',
-                        youtube: ''
-                    }
-                });
-            } catch (err) {
-                console.error('Failed to fetch profile:', err);
-                setError('Failed to load profile data.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProfile();
-    }, []);
+        if (!authLoading && authUser) {
+            setFormData({
+                name: authUser.name || '',
+                email: authUser.email || '',
+                phone: authUser.phone || '',
+                instructorBio: authUser.instructorBio || '',
+                instructorSpecialty: authUser.instructorSpecialty || '',
+                profilePhoto: authUser.profilePhoto || '',
+                socialLinks: authUser.socialLinks || {
+                    website: '',
+                    linkedin: '',
+                    twitter: '',
+                    youtube: ''
+                }
+            });
+        }
+    }, [authLoading, authUser]);
 
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
@@ -130,7 +121,7 @@ export default function EditProfile() {
         }
     };
 
-    if (loading) return (
+    if (authLoading) return (
         <DashboardLayout>
             <div className="flex items-center justify-center min-h-[400px]">
                 <Loader2 className="animate-spin text-[#071739]" size={32} />

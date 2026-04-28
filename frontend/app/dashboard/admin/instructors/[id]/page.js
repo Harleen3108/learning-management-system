@@ -28,10 +28,10 @@ const statusColors = {
 // ─── Sub-Components ────────────────────────────────────────────────────────────
 function StatCard({ icon: Icon, label, value, sub, color = 'blue', delay = 0 }) {
     const palette = {
-        blue:   { bg: 'bg-blue-50',   text: 'text-blue-600',   ring: 'ring-blue-100'   },
+        blue:   { bg: 'bg-primary/5',   text: 'text-primary',   ring: 'ring-primary/10'   },
         emerald:{ bg: 'bg-emerald-50', text: 'text-emerald-600',ring: 'ring-emerald-100'},
         amber:  { bg: 'bg-amber-50',  text: 'text-amber-600',  ring: 'ring-amber-100'  },
-        violet: { bg: 'bg-violet-50', text: 'text-violet-600', ring: 'ring-violet-100' },
+        violet: { bg: 'bg-secondary/10', text: 'text-secondary', ring: 'ring-secondary/20' },
     }[color];
     return (
         <motion.div
@@ -44,26 +44,26 @@ function StatCard({ icon: Icon, label, value, sub, color = 'blue', delay = 0 }) 
                 <Icon size={26} />
             </div>
             <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
-                <p className="text-2xl font-black text-slate-800 leading-none">{value}</p>
-                {sub && <p className={`text-[10px] font-bold mt-1 ${palette.text}`}>{sub}</p>}
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
+                <p className="text-2xl font-semibold text-slate-800 leading-none">{value}</p>
+                {sub && <p className={`text-[10px] font-semibold mt-1 ${palette.text}`}>{sub}</p>}
             </div>
         </motion.div>
     );
 }
 
-function SectionTitle({ icon: Icon, title, accent = 'text-blue-600' }) {
+function SectionTitle({ icon: Icon, title, accent = 'text-primary' }) {
     return (
         <div className="flex items-center gap-3 mb-5">
             <div className={`${accent}`}><Icon size={18} /></div>
-            <h2 className="text-sm font-black text-slate-700 uppercase tracking-widest">{title}</h2>
+            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-widest">{title}</h2>
         </div>
     );
 }
 
 function Badge({ status }) {
     return (
-        <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${statusColors[status] || statusColors.draft}`}>
+        <span className={`px-3 py-1 rounded-xl text-[9px] font-semibold uppercase tracking-widest border ${statusColors[status] || statusColors.draft}`}>
             {status}
         </span>
     );
@@ -71,7 +71,7 @@ function Badge({ status }) {
 
 function Stars({ rating }) {
     return (
-        <span className="flex items-center gap-1 text-amber-400 font-black text-xs">
+        <span className="flex items-center gap-1 text-amber-400 font-semibold text-xs">
             <Star size={12} fill="currentColor" /> {rating ? rating.toFixed(1) : '—'}
         </span>
     );
@@ -81,7 +81,7 @@ function Stars({ rating }) {
 function RevenueChart({ trend }) {
     if (!trend || trend.length === 0) {
         return (
-            <div className="h-40 flex items-center justify-center text-slate-300 text-xs font-bold">
+            <div className="h-40 flex items-center justify-center text-slate-300 text-xs font-semibold">
                 No revenue data yet
             </div>
         );
@@ -92,7 +92,7 @@ function RevenueChart({ trend }) {
             {trend.map((t, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
                     <div
-                        className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] font-black px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap z-10 pointer-events-none"
+                        className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] font-semibold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap z-10 pointer-events-none"
                     >
                         {money(t.revenue)}
                     </div>
@@ -100,9 +100,9 @@ function RevenueChart({ trend }) {
                         initial={{ height: 0 }}
                         animate={{ height: `${(t.revenue / max) * 100}%` }}
                         transition={{ delay: i * 0.04 }}
-                        className="w-full bg-blue-100 group-hover:bg-blue-500 rounded-xl transition-colors duration-300 min-h-[4px]"
+                        className="w-full bg-primary/20 group-hover:bg-primary rounded-xl transition-colors duration-300 min-h-[4px]"
                     />
-                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-wider">{t.month.split(' ')[0]}</p>
+                    <p className="text-[8px] font-semibold text-slate-300 uppercase tracking-wider">{t.month.split(' ')[0]}</p>
                 </div>
             ))}
         </div>
@@ -214,6 +214,7 @@ export default function InstructorProfilePage() {
         { key: 'quizzes',     label: 'Quizzes',       icon: Award      },
         { key: 'logs',        label: 'Activity',      icon: Activity   },
         { key: 'flags',       label: 'Flags',         icon: Flag       },
+        ...(data?.application ? [{ key: 'application', label: 'Application', icon: Shield }] : []),
     ];
 
     if (loading) {
@@ -221,7 +222,7 @@ export default function InstructorProfilePage() {
             <AdminLayout>
                 <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
                     <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-slate-400 font-black text-xs uppercase tracking-widest animate-pulse">Loading Instructor Profile...</p>
+                    <p className="text-slate-400 font-semibold text-xs uppercase tracking-widest animate-pulse">Loading Instructor Profile...</p>
                 </div>
             </AdminLayout>
         );
@@ -232,8 +233,8 @@ export default function InstructorProfilePage() {
             <AdminLayout>
                 <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
                     <XCircle size={48} className="text-rose-300" />
-                    <p className="text-slate-500 font-bold">Instructor not found</p>
-                    <button onClick={() => router.back()} className="text-blue-600 font-black text-xs uppercase tracking-widest hover:underline">← Go Back</button>
+                    <p className="text-slate-500 font-semibold">Instructor not found</p>
+                    <button onClick={() => router.back()} className="text-blue-600 font-semibold text-xs uppercase tracking-widest hover:underline">← Go Back</button>
                 </div>
             </AdminLayout>
         );
@@ -250,7 +251,7 @@ export default function InstructorProfilePage() {
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className={`fixed top-20 right-6 z-[999] px-6 py-3 rounded-2xl text-white text-sm font-bold shadow-2xl
+                        className={`fixed top-20 right-6 z-[999] px-6 py-3 rounded-2xl text-white text-sm font-semibold shadow-2xl
                             ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`}
                     >
                         {toast.msg}
@@ -268,8 +269,8 @@ export default function InstructorProfilePage() {
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Instructor Management</p>
-                        <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-tight">
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Instructor Management</p>
+                        <h1 className="text-2xl font-semibold text-slate-800 tracking-tight leading-tight">
                             {profile.name}'s Dashboard
                         </h1>
                     </div>
@@ -286,7 +287,9 @@ export default function InstructorProfilePage() {
                         <div className="relative shrink-0">
                             <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-slate-100 shadow-md bg-slate-50">
                                 <img
-                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile._id || profile.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`}
+                                    src={profile.profilePhoto && profile.profilePhoto !== 'no-photo.jpg' 
+                                        ? (profile.profilePhoto.startsWith('http') ? profile.profilePhoto : `http://localhost:5000/uploads/${profile.profilePhoto}`)
+                                        : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile._id || profile.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`}
                                     alt={profile.name}
                                     className="w-full h-full object-cover"
                                 />
@@ -301,19 +304,19 @@ export default function InstructorProfilePage() {
                         <div className="flex-1 min-w-0">
                             <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-800 tracking-tight leading-tight">{profile.name}</h2>
-                                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-0.5">
+                                    <h2 className="text-xl font-semibold text-slate-800 tracking-tight leading-tight">{profile.name}</h2>
+                                    <p className="text-[10px] font-semibold text-[#071739] uppercase tracking-widest mt-0.5">
                                         {profile.instructorSpecialty || 'Senior Educator'}
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border
+                                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-semibold uppercase tracking-widest border
                                         ${profile.instructorStatus === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                                           profile.instructorStatus === 'pending'  ? 'bg-amber-50 text-amber-600 border-amber-100' :
                                           'bg-rose-50 text-rose-500 border-rose-100'}`}>
                                         <Shield size={10} /> {profile.instructorStatus}
                                     </span>
-                                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border
+                                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-semibold uppercase tracking-widest border
                                         ${profile.isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
                                         <div className={`w-1.5 h-1.5 rounded-full ${profile.isActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-300'}`} />
                                         {profile.isActive ? 'Active' : 'Blocked'}
@@ -323,15 +326,15 @@ export default function InstructorProfilePage() {
 
                             {/* Meta info */}
                             <div className="mt-4 pt-4 border-t border-slate-50 flex flex-wrap gap-5 text-sm text-slate-400 font-medium">
-                                <span className="flex items-center gap-2 text-xs">
+                                <span className="flex items-center gap-2 text-xs font-semibold">
                                     <Mail size={13} className="text-slate-300" />{profile.email}
                                 </span>
                                 {profile.phone && (
-                                    <span className="flex items-center gap-2 text-xs">
+                                    <span className="flex items-center gap-2 text-xs font-semibold">
                                         <Phone size={13} className="text-slate-300" />{profile.phone}
                                     </span>
                                 )}
-                                <span className="flex items-center gap-2 text-xs">
+                                <span className="flex items-center gap-2 text-xs font-semibold">
                                     <Calendar size={13} className="text-slate-300" />Joined {date(profile.createdAt)}
                                 </span>
                                 {profile.instructorBio && (
@@ -341,6 +344,31 @@ export default function InstructorProfilePage() {
                         </div>
                     </div>
                 </motion.div>
+                
+                {/* Application Alert */}
+                {data.profile.instructorStatus === 'pending' && data.application && (
+                    <motion.div 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="bg-amber-50 border border-amber-100 rounded-3xl p-6 flex items-center justify-between gap-4 shadow-sm"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-sm">
+                                <Shield size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold text-amber-800 uppercase tracking-widest">Action Required: Instructor Application</h3>
+                                <p className="text-xs text-amber-600 font-medium mt-0.5">This user has applied to become an instructor. Review their details in the Application tab.</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setActiveTab('application')}
+                            className="px-5 py-2.5 bg-amber-600 text-white rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:bg-amber-700 transition-all shadow-lg shadow-amber-100"
+                        >
+                            View Application
+                        </button>
+                    </motion.div>
+                )}
 
                 {/* ── KPI Overview Cards ─── */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -357,7 +385,7 @@ export default function InstructorProfilePage() {
                     transition={{ delay: 0.25 }}
                     className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 flex flex-wrap items-center gap-3"
                 >
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2 flex items-center gap-2">
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mr-2 flex items-center gap-2">
                         <Shield size={14} /> Admin Actions
                     </p>
 
@@ -365,7 +393,7 @@ export default function InstructorProfilePage() {
                         <button
                             disabled={actionLoading}
                             onClick={() => handleStatus('approved')}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-2xl text-xs font-semibold uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
                         >
                             <UserCheck size={14} /> Approve
                         </button>
@@ -374,7 +402,7 @@ export default function InstructorProfilePage() {
                         <button
                             disabled={actionLoading}
                             onClick={() => handleStatus('rejected')}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-amber-100 transition-all disabled:opacity-50"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-2xl text-xs font-semibold uppercase tracking-widest hover:bg-amber-100 transition-all disabled:opacity-50"
                         >
                             <XCircle size={14} /> Reject
                         </button>
@@ -382,15 +410,15 @@ export default function InstructorProfilePage() {
                     <button
                         disabled={actionLoading}
                         onClick={handleBlock}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border disabled:opacity-50
-                            ${profile.isActive ? 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100' : 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'}`}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all border disabled:opacity-50
+                            ${profile.isActive ? 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100' : 'bg-[#071739]/5 text-[#071739] border-[#071739]/10 hover:bg-[#071739]/10'}`}
                     >
                         {profile.isActive ? <><UserX size={14} /> Block</> : <><UserCheck size={14} /> Unblock</>}
                     </button>
                     <button
                         disabled={actionLoading}
                         onClick={handleDelete}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-rose-50 text-rose-500 border border-rose-100 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all ml-auto disabled:opacity-50"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-rose-50 text-rose-500 border border-rose-100 rounded-2xl text-xs font-semibold uppercase tracking-widest hover:bg-rose-100 transition-all ml-auto disabled:opacity-50"
                     >
                         <Trash2 size={14} /> Delete Account
                     </button>
@@ -408,10 +436,10 @@ export default function InstructorProfilePage() {
                         <button
                             key={t.key}
                             onClick={() => setActiveTab(t.key)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all border
                                 ${activeTab === t.key
-                                    ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200'
-                                    : 'bg-white text-slate-500 border-slate-100 hover:border-blue-200 hover:text-blue-600'
+                                    ? 'bg-[#071739] text-white border-[#071739] shadow-lg shadow-[#071739]/20'
+                                    : 'bg-white text-slate-500 border-slate-100 hover:border-[#071739]/20 hover:text-[#071739]'
                                 }`}
                         >
                             <t.icon size={13} /> {t.label}
@@ -441,14 +469,14 @@ export default function InstructorProfilePage() {
                                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-7 space-y-5">
                                     <SectionTitle icon={Users} title="Student Engagement" />
                                     {[
-                                        { label: 'Total Enrolled', val: studentEngagement.totalStudents, color: 'bg-blue-500', pct: 100 },
+                                        { label: 'Total Enrolled', val: studentEngagement.totalStudents, color: 'bg-[#071739]', pct: 100 },
                                         { label: 'Active Students', val: studentEngagement.activeStudents, color: 'bg-emerald-500', pct: studentEngagement.totalStudents ? Math.round((studentEngagement.activeStudents/studentEngagement.totalStudents)*100) : 0 },
                                         { label: 'Completion Rate', val: `${studentEngagement.completionRate}%`, color: 'bg-violet-500', pct: studentEngagement.completionRate },
                                     ].map(m => (
                                         <div key={m.label}>
                                             <div className="flex justify-between mb-1">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{m.label}</span>
-                                                <span className="text-xs font-black text-slate-700">{m.val}</span>
+                                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{m.label}</span>
+                                                <span className="text-xs font-semibold text-slate-700">{m.val}</span>
                                             </div>
                                             <div className="h-2 bg-slate-50 rounded-full overflow-hidden">
                                                 <motion.div
@@ -473,14 +501,14 @@ export default function InstructorProfilePage() {
                                     <SectionTitle icon={Award} title="Quiz Performance" />
                                     <div className="grid grid-cols-2 gap-4">
                                         {[
-                                            { label: 'Quizzes',   val: quizStats.totalQuizzes,  color: 'text-blue-600' },
+                                            { label: 'Quizzes',   val: quizStats.totalQuizzes,  color: 'text-[#071739]' },
                                             { label: 'Attempts',  val: quizStats.totalAttempts,  color: 'text-violet-600' },
                                             { label: 'Avg Score', val: `${quizStats.avgScore}%`, color: 'text-amber-500' },
                                             { label: 'Pass Rate', val: `${quizStats.passRate}%`, color: 'text-emerald-500' },
                                         ].map(q => (
                                             <div key={q.label} className="bg-slate-50 rounded-2xl p-4 text-center">
-                                                <p className={`text-xl font-black ${q.color}`}>{q.val}</p>
-                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{q.label}</p>
+                                                <p className={`text-xl font-semibold ${q.color}`}>{q.val}</p>
+                                                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mt-1">{q.label}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -493,7 +521,7 @@ export default function InstructorProfilePage() {
                                         {courses.slice(0, 4).map(c => (
                                             <div key={c._id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
                                                 <div className="flex-1 min-w-0 mr-3">
-                                                    <p className="text-sm font-black text-slate-700 truncate">{c.title}</p>
+                                                    <p className="text-sm font-semibold text-slate-700 truncate">{c.title}</p>
                                                     <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{c.enrollmentCount} students • {money(c.revenue)}</p>
                                                 </div>
                                                 <Badge status={c.status} />
@@ -512,14 +540,14 @@ export default function InstructorProfilePage() {
                                     <SectionTitle icon={BookOpen} title={`All Courses (${courses.length})`} />
                                 </div>
                                 {courses.length === 0 ? (
-                                    <div className="py-16 text-center text-slate-300 text-sm font-bold">No courses found</div>
+                                    <div className="py-16 text-center text-slate-300 text-sm font-semibold">No courses found</div>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="w-full">
                                             <thead>
                                                 <tr className="bg-slate-50/80">
                                                     {['Course Title','Category','Status','Students','Rating','Revenue','Actions'].map(h => (
-                                                        <th key={h} className="px-5 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                                                        <th key={h} className="px-5 py-4 text-left text-[9px] font-semibold text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                                                     ))}
                                                 </tr>
                                             </thead>
@@ -533,18 +561,18 @@ export default function InstructorProfilePage() {
                                                         className="hover:bg-slate-50/50 transition-colors"
                                                     >
                                                         <td className="px-5 py-4">
-                                                            <p className="text-sm font-black text-slate-700 max-w-[200px] truncate">{c.title}</p>
+                                                            <p className="text-sm font-semibold text-slate-700 max-w-[200px] truncate">{c.title}</p>
                                                             <p className="text-[10px] text-slate-400 font-semibold mt-0.5 capitalize">{c.difficulty}</p>
                                                         </td>
                                                         <td className="px-5 py-4 text-xs font-semibold text-slate-500">{c.category}</td>
                                                         <td className="px-5 py-4"><Badge status={c.status} /></td>
                                                         <td className="px-5 py-4">
-                                                            <span className="flex items-center gap-1 text-sm font-black text-slate-700">
+                                                            <span className="flex items-center gap-1 text-sm font-semibold text-slate-700">
                                                                 <Users size={12} className="text-slate-300" /> {c.enrollmentCount}
                                                             </span>
                                                         </td>
                                                         <td className="px-5 py-4"><Stars rating={c.avgRating} /></td>
-                                                        <td className="px-5 py-4 text-sm font-black text-slate-700">{money(c.revenue)}</td>
+                                                        <td className="px-5 py-4 text-sm font-semibold text-slate-700">{money(c.revenue)}</td>
                                                         <td className="px-5 py-4">
                                                             <div className="flex items-center gap-2">
                                                                 {c.status === 'pending' && (
@@ -567,7 +595,7 @@ export default function InstructorProfilePage() {
                                                                 )}
                                                                 <button
                                                                     onClick={() => window.open(`/dashboard/courses/${c._id}`, '_blank')}
-                                                                    className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all"
+                                                                    className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-[#071739]/5 hover:text-[#071739] transition-all"
                                                                     title="Open Course"
                                                                 >
                                                                     <Eye size={15} />
@@ -601,15 +629,15 @@ export default function InstructorProfilePage() {
                                             return (
                                                 <div key={i}>
                                                     <div className="flex justify-between mb-1.5">
-                                                        <span className="text-xs font-black text-slate-600 truncate max-w-[60%]">{c.title}</span>
-                                                        <span className="text-xs font-black text-blue-600">{c.enrollments} students</span>
+                                                        <span className="text-xs font-semibold text-slate-600 truncate max-w-[60%]">{c.title}</span>
+                                                        <span className="text-xs font-semibold text-[#071739]">{c.enrollments} students</span>
                                                     </div>
                                                     <div className="h-2.5 bg-slate-50 rounded-full overflow-hidden">
                                                         <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${(c.enrollments / maxE) * 100}%` }}
                                                             transition={{ duration: 0.8, delay: i * 0.05 }}
-                                                            className="h-full bg-blue-400 rounded-full"
+                                                            className="h-full bg-[#071739]/60 rounded-full"
                                                         />
                                                     </div>
                                                 </div>
@@ -627,10 +655,10 @@ export default function InstructorProfilePage() {
                                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
                                     <div className="flex justify-between items-start mb-8">
                                         <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Earnings</p>
-                                            <h2 className="text-4xl font-black text-slate-800">{money(revenue.total)}</h2>
+                                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Total Earnings</p>
+                                            <h2 className="text-4xl font-semibold text-slate-800">{money(revenue.total)}</h2>
                                         </div>
-                                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-semibold uppercase tracking-widest border border-emerald-100">
                                             <TrendingUp size={12} /> All Time
                                         </div>
                                     </div>
@@ -646,8 +674,8 @@ export default function InstructorProfilePage() {
                                             return (
                                                 <div key={i}>
                                                     <div className="flex justify-between mb-1.5">
-                                                        <span className="text-xs font-black text-slate-600 truncate max-w-[55%]">{c.title}</span>
-                                                        <span className="text-xs font-black text-violet-600">{money(c.revenue)}</span>
+                                                        <span className="text-xs font-semibold text-slate-600 truncate max-w-[55%]">{c.title}</span>
+                                                        <span className="text-xs font-semibold text-violet-600">{money(c.revenue)}</span>
                                                     </div>
                                                     <div className="h-2.5 bg-slate-50 rounded-full overflow-hidden">
                                                         <motion.div
@@ -671,20 +699,20 @@ export default function InstructorProfilePage() {
                             <div className="space-y-4">
                                 <div className="flex items-center gap-6 bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
                                     <div className="text-center">
-                                        <p className="text-5xl font-black text-slate-800">{overview.avgRating || '—'}</p>
+                                        <p className="text-5xl font-semibold text-slate-800">{overview.avgRating || '—'}</p>
                                         <div className="flex justify-center gap-1 mt-2">
                                             {[1,2,3,4,5].map(s => (
                                                 <Star key={s} size={16} className={s <= Math.round(overview.avgRating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'} />
                                             ))}
                                         </div>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{reviews.length} Reviews</p>
+                                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mt-2">{reviews.length} Reviews</p>
                                     </div>
                                     <div className="flex-1 space-y-2">
                                         {[5,4,3,2,1].map(s => {
                                             const cnt = reviews.filter(r => Math.round(r.rating) === s).length;
                                             return (
                                                 <div key={s} className="flex items-center gap-3">
-                                                    <span className="text-[10px] font-black text-slate-400 w-2">{s}</span>
+                                                    <span className="text-[10px] font-semibold text-slate-400 w-2">{s}</span>
                                                     <Star size={10} className="text-amber-400 fill-amber-400" />
                                                     <div className="flex-1 h-1.5 bg-slate-50 rounded-full overflow-hidden">
                                                         <div className="h-full bg-amber-400 rounded-full" style={{ width: reviews.length ? `${(cnt/reviews.length)*100}%` : '0%' }} />
@@ -697,7 +725,7 @@ export default function InstructorProfilePage() {
                                 </div>
 
                                 {reviews.length === 0 ? (
-                                    <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center text-slate-300 text-sm font-bold">No reviews yet</div>
+                                    <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center text-slate-300 text-sm font-semibold">No reviews yet</div>
                                 ) : (
                                     reviews.map((r, i) => (
                                         <motion.div
@@ -709,18 +737,18 @@ export default function InstructorProfilePage() {
                                         >
                                             <div className="flex justify-between items-start mb-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-sm font-black text-slate-600">
+                                                    <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-sm font-semibold text-slate-600">
                                                         {r.student?.name?.charAt(0) || '?'}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-black text-slate-700">{r.student?.name || 'Unknown'}</p>
+                                                        <p className="text-sm font-semibold text-slate-700">{r.student?.name || 'Unknown'}</p>
                                                         <p className="text-[9px] text-slate-400 font-semibold">{r.course?.title}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <Stars rating={r.rating} />
                                                     {r.status === 'flagged' && (
-                                                        <span className="px-2 py-1 bg-rose-100 text-rose-500 text-[9px] font-black rounded-lg uppercase tracking-widest">Flagged</span>
+                                                        <span className="px-2 py-1 bg-rose-100 text-rose-500 text-[9px] font-semibold rounded-lg uppercase tracking-widest">Flagged</span>
                                                     )}
                                                     <button
                                                         onClick={() => handleDeleteReview(r._id)}
@@ -732,7 +760,7 @@ export default function InstructorProfilePage() {
                                                 </div>
                                             </div>
                                             <p className="text-sm text-slate-600 leading-relaxed">{r.comment}</p>
-                                            <p className="text-[9px] text-slate-300 font-bold mt-3">{date(r.createdAt)}</p>
+                                            <p className="text-[9px] text-slate-300 font-semibold mt-3">{date(r.createdAt)}</p>
                                         </motion.div>
                                     ))
                                 )}
@@ -743,7 +771,7 @@ export default function InstructorProfilePage() {
                         {activeTab === 'live' && (
                             <div className="space-y-4">
                                 {liveClasses.length === 0 ? (
-                                    <div className="bg-white rounded-3xl border border-slate-100 p-16 text-center text-slate-300 text-sm font-bold">
+                                    <div className="bg-white rounded-3xl border border-slate-100 p-16 text-center text-slate-300 text-sm font-semibold">
                                         No live classes scheduled
                                     </div>
                                 ) : (
@@ -759,18 +787,18 @@ export default function InstructorProfilePage() {
                                                 <Video size={22} />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-black text-slate-700 truncate">{lc.title}</p>
+                                                <p className="text-sm font-semibold text-slate-700 truncate">{lc.title}</p>
                                                 <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{lc.course?.title}</p>
                                             </div>
                                             <div className="text-right shrink-0">
-                                                <p className="text-xs font-black text-slate-600">{date(lc.scheduledAt)}</p>
-                                                <p className="text-[9px] text-slate-400 font-bold mt-0.5">{lc.duration} min</p>
+                                                <p className="text-xs font-semibold text-slate-600">{date(lc.scheduledAt)}</p>
+                                                <p className="text-[9px] text-slate-400 font-semibold mt-0.5">{lc.duration} min</p>
                                             </div>
                                             <a
                                                 href={lc.meetingUrl}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all"
+                                                className="p-2.5 bg-[#071739]/5 text-[#071739] rounded-xl hover:bg-[#071739]/10 transition-all"
                                             >
                                                 <Play size={15} />
                                             </a>
@@ -800,8 +828,8 @@ export default function InstructorProfilePage() {
                                         ].map(m => (
                                             <div key={m.label}>
                                                 <div className="flex justify-between mb-2">
-                                                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{m.label}</span>
-                                                    <span className="text-xs font-black text-slate-700">{m.pct}%</span>
+                                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">{m.label}</span>
+                                                    <span className="text-xs font-semibold text-slate-700">{m.pct}%</span>
                                                 </div>
                                                 <div className="h-3 bg-slate-50 rounded-full overflow-hidden">
                                                     <motion.div
@@ -840,7 +868,7 @@ export default function InstructorProfilePage() {
                                                     <Activity size={14} />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-black text-slate-700">{log.action?.replace(/_/g, ' ')}</p>
+                                                    <p className="text-xs font-semibold text-slate-700">{log.action?.replace(/_/g, ' ')}</p>
                                                     <p className="text-[10px] text-slate-400 font-semibold mt-0.5 truncate">{log.details || log.resource}</p>
                                                     {log.user?.name && (
                                                         <p className="text-[9px] text-slate-300 font-bold mt-0.5">by {log.user.name} ({log.user.role})</p>
@@ -854,7 +882,132 @@ export default function InstructorProfilePage() {
                             </div>
                         )}
 
-                        {/* ── CONTENT FLAGS ─── */}
+                        {/* ── APPLICATION ─── */}
+                        {activeTab === 'application' && data.application && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Screening Questions */}
+                                <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-8 space-y-8">
+                                    <SectionTitle icon={Shield} title="Qualification Screening" accent="text-amber-500" />
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-1.5">
+                                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">How they describe themselves</p>
+                                            <p className="text-sm font-bold text-slate-700 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                                {data.application.qualification?.describeSelf || '—'}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Teaching Experience</p>
+                                            <p className="text-sm font-bold text-slate-700 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                                {data.application.qualification?.hasTaughtBefore || '—'}
+                                            </p>
+                                        </div>
+                                        <div className="md:col-span-2 space-y-1.5">
+                                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Primary Teaching Topic</p>
+                                            <p className="text-sm font-bold text-slate-700 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                                {data.application.qualification?.teachingTopic || '—'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-8 border-t border-slate-50">
+                                        <SectionTitle icon={BookOpen} title="Application Profile" />
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-1.5">
+                                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Full Name (Legal)</p>
+                                                    <p className="text-sm font-bold text-slate-700">{data.application.fullName || '—'}</p>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Professional Headline</p>
+                                                    <p className="text-sm font-bold text-slate-700">{data.application.professionalHeadline || '—'}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Biography</p>
+                                                <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-5 rounded-2xl italic">
+                                                    {data.application.bio || 'No bio provided'}
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Teaching Experience Details</p>
+                                                <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-5 rounded-2xl">
+                                                    {data.application.teachingExperience || 'No experience details provided'}
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Sample Course Idea</p>
+                                                <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-5 rounded-2xl border border-blue-50">
+                                                    {data.application.sampleCourseIdea || 'No course idea provided'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Sidebar: Links & Documents */}
+                                <div className="space-y-6">
+                                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-7">
+                                        <SectionTitle icon={Zap} title="Professional Links" />
+                                        <div className="space-y-3">
+                                            {data.application.links?.website && (
+                                                <a href={data.application.links.website} target="_blank" rel="noreferrer" 
+                                                   className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-blue-50 transition-all group">
+                                                    <span className="text-xs font-bold text-slate-600">Portfolio Website</span>
+                                                    <ExternalLink size={14} className="text-slate-300 group-hover:text-blue-500" />
+                                                </a>
+                                            )}
+                                            {data.application.links?.linkedin && (
+                                                <a href={data.application.links.linkedin} target="_blank" rel="noreferrer" 
+                                                   className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-blue-50 transition-all group">
+                                                    <span className="text-xs font-bold text-slate-600">LinkedIn Profile</span>
+                                                    <ExternalLink size={14} className="text-slate-300 group-hover:text-blue-500" />
+                                                </a>
+                                            )}
+                                            {data.application.links?.portfolio && (
+                                                <a href={data.application.links.portfolio} target="_blank" rel="noreferrer" 
+                                                   className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-blue-50 transition-all group">
+                                                    <span className="text-xs font-bold text-slate-600">Other Portfolio</span>
+                                                    <ExternalLink size={14} className="text-slate-300 group-hover:text-blue-500" />
+                                                </a>
+                                            )}
+                                            {!data.application.links?.website && !data.application.links?.linkedin && !data.application.links?.portfolio && (
+                                                <p className="text-xs text-slate-400 italic text-center py-4">No links provided</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-7">
+                                        <SectionTitle icon={DollarSign} title="Payout Information" />
+                                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Method</p>
+                                            <p className="text-sm font-bold text-[#071739]">{data.application.preferredPayoutMethod || 'Bank Transfer'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-[#071739] rounded-3xl p-7 text-white shadow-xl shadow-slate-900/10">
+                                        <h3 className="text-sm font-semibold uppercase tracking-widest mb-4">Application Decision</h3>
+                                        <div className="space-y-3">
+                                            <button 
+                                                onClick={() => handleStatus('approved')}
+                                                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-semibold text-[10px] uppercase tracking-widest transition-all"
+                                            >
+                                                Approve Instructor
+                                            </button>
+                                            <button 
+                                                onClick={() => handleStatus('rejected')}
+                                                className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-semibold text-[10px] uppercase tracking-widest transition-all"
+                                            >
+                                                Reject Application
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {activeTab === 'flags' && (
                             <div className="space-y-4">
                                 {flaggedContent.length === 0 ? (
@@ -867,7 +1020,7 @@ export default function InstructorProfilePage() {
                                     <>
                                         <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-3xl">
                                             <AlertTriangle size={18} className="text-rose-500" />
-                                            <p className="text-sm font-black text-rose-600">{flaggedContent.length} flagged item{flaggedContent.length > 1 ? 's' : ''} require review</p>
+                                            <p className="text-sm font-semibold text-rose-600">{flaggedContent.length} flagged item{flaggedContent.length > 1 ? 's' : ''} require review</p>
                                         </div>
                                         {flaggedContent.map((r, i) => (
                                             <motion.div
@@ -881,7 +1034,7 @@ export default function InstructorProfilePage() {
                                                     <div className="flex items-center gap-3">
                                                         <Flag size={16} className="text-rose-500" />
                                                         <div>
-                                                            <p className="text-sm font-black text-slate-700">{r.student?.name || 'Unknown Student'}</p>
+                                                            <p className="text-sm font-semibold text-slate-700">{r.student?.name || 'Unknown Student'}</p>
                                                             <p className="text-[10px] text-slate-400 font-semibold">{r.course?.title}</p>
                                                         </div>
                                                     </div>
@@ -889,7 +1042,7 @@ export default function InstructorProfilePage() {
                                                         <Stars rating={r.rating} />
                                                         <button
                                                             onClick={() => handleDeleteReview(r._id)}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all"
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500 text-white rounded-xl text-[9px] font-semibold uppercase tracking-widest hover:bg-rose-600 transition-all"
                                                         >
                                                             <Trash2 size={11} /> Remove
                                                         </button>
@@ -897,7 +1050,7 @@ export default function InstructorProfilePage() {
                                                 </div>
                                                 <p className="text-sm text-slate-600 leading-relaxed">{r.comment}</p>
                                                 <div className="mt-3 flex items-center gap-3">
-                                                    <span className="text-[9px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-2 py-1 rounded-lg uppercase">{r.sentimentLabel}</span>
+                                                    <span className="text-[9px] font-semibold text-rose-500 bg-rose-50 border border-rose-100 px-2 py-1 rounded-lg uppercase">{r.sentimentLabel}</span>
                                                     <span className="text-[9px] text-slate-300 font-bold">{date(r.createdAt)}</span>
                                                 </div>
                                             </motion.div>

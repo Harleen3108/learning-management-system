@@ -3,26 +3,14 @@ import { useState, useEffect } from 'react';
 import { Play, CreditCard, Loader2, AlertCircle } from 'lucide-react';
 import api from '@/services/api';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/useAuthStore';
 import ParentLinkModal from './ParentLinkModal';
 
 export default function CourseEnrollButton({ course, onEnrollSuccess }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [user, setUser] = useState(null);
+    const { user } = useAuthStore();
     const [isParentModalOpen, setIsParentModalOpen] = useState(false);
-    const [tempParentData, setTempParentData] = useState(null);
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const res = await api.get('/auth/me');
-                setUser(res.data.data);
-            } catch (err) {
-                console.error('Failed to fetch user in enroll button:', err);
-            }
-        };
-        fetchUser();
-    }, []);
 
     const loadRazorpay = () => {
         return new Promise((resolve) => {

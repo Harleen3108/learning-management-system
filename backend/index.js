@@ -29,6 +29,8 @@ app.use('/api/v1/enrollments', require('./routes/enrollments'));
 app.use('/api/v1/quizzes', require('./routes/quizzes'));
 app.use('/api/v1/admin', require('./routes/admin'));
 app.use('/api/v1/payments', require('./routes/payment'));
+app.use('/api/v1/coupons', require('./routes/coupons'));
+app.use('/api/v1/notifications', require('./routes/notifications'));
 app.use('/api/v1/reviews', require('./routes/reviews'));
 app.use('/api/v1/support', require('./routes/support'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
@@ -40,10 +42,14 @@ app.use('/api/v1/categories', require('./routes/categories'));
 app.use('/api/v1/communication', require('./routes/communication'));
 app.use('/api/v1/performance', require('./routes/performance'));
 app.use('/api/v1/instructor-settings', require('./routes/instructorSettings'));
+app.use('/api/v1/instructor-applications', require('./routes/instructorApplications'));
 
 app.get('/', (req, res) => {
     res.json({ message: 'LMS API is running' });
 });
+
+const errorHandler = require('./middleware/error');
+app.use(errorHandler);
 
 // Port
 const PORT = process.env.PORT || 5000;

@@ -23,7 +23,8 @@ import {
   BarChart2,
   Wrench,
   Library,
-  Video
+  Video,
+  Globe
 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -33,14 +34,20 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import api from '@/services/api';
 import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import LanguageModal from './LanguageModal';
+import NotificationBell from './NotificationBell';
+import logo from '@/assets/favicon_circle.png';
 
-export default function Topbar() {
+export default function Topbar({ onToggleSidebar, sidebarOpen } = {}) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const { user, logout } = useAuthStore();
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
+  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [categories, setCategories] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
   const [hoveredCategory, setHoveredCategory] = useState(null);
@@ -51,14 +58,6 @@ export default function Topbar() {
   const { items } = useCartStore();
 
   useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        const res = await api.get('/auth/me');
-        setUser(res.data.data);
-      } catch (err) {
-        console.error('Failed to fetch user:', err);
-      }
-    };
     const fetchCategories = async () => {
         try {
             const res = await api.get('/categories');
@@ -71,8 +70,8 @@ export default function Topbar() {
             console.error('Failed to fetch categories:', err);
         }
     };
-    fetchMe();
     fetchCategories();
+    setMounted(true);
   }, []);
 
   useEffect(() => {
@@ -88,8 +87,9 @@ export default function Topbar() {
   const role = user?.role?.toLowerCase() || 'student';
   const isAdmin = role === 'admin' || role === 'super-admin';
 
+  // Note: an "Explore" mega-menu already lives to the left of these links — don't duplicate it here.
   const studentLinks = [
-    { label: 'Explore', href: '/dashboard/explore' },
+    { label: 'Dashboard', href: '/dashboard/student' },
     { label: 'My Learning', href: '/dashboard/student/my-courses' },
     { label: 'Live Classes', href: '/dashboard/student/live' },
   ];
@@ -122,17 +122,38 @@ export default function Topbar() {
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to sign out?')) {
-      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      router.push('/login');
+      logout(router);
+      setIsProfileOpen(false);
     }
   };
 
   return (
-    <header className="h-20 bg-white border-b border-slate-100 flex items-center px-6 sticky top-0 z-[100] gap-8">
+    <header className="h-20 bg-white border-b border-slate-100 flex items-center px-4 sm:px-6 sticky top-0 z-[100] gap-4 sm:gap-8">
+      {/* Mobile sidebar toggle — only when a toggle handler is provided (instructor layout) */}
+      {onToggleSidebar && (
+        <button
+          onClick={onToggleSidebar}
+          className="lg:hidden p-2.5 text-slate-600 hover:text-[#071739] hover:bg-slate-100 rounded-xl transition-all shrink-0"
+          aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+        >
+          <Menu size={22} />
+        </button>
+      )}
+
       {/* Brand Logo - Hidden for Instructor (since sidebar has it) */}
       {role !== 'instructor' && (
-        <Link href="/" className="flex items-center gap-2 group shrink-0">
+        <Link href="/" className="flex items-center gap-3 group shrink-0">
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden group-hover:border-[#071739] transition-all p-1">
+            <img src={logo.src} alt="EduFlow" className="w-full h-full object-contain" />
+          </div>
           <span className="text-xl font-semibold text-[#071739] tracking-tighter">EduFlow</span>
+        </Link>
+      )}
+
+      {/* Mobile-only EduFlow brand for instructor (since sidebar is hidden by default on mobile) */}
+      {role === 'instructor' && (
+        <Link href="/dashboard/instructor" className="lg:hidden flex items-center gap-2 shrink-0">
+          <span className="text-lg font-semibold text-[#071739] tracking-tighter">EduFlow</span>
         </Link>
       )}
 
@@ -249,17 +270,7 @@ export default function Topbar() {
       </div>
       )}
 
-      {/* Search Bar - Visible for Student and Instructor */}
-      {role !== 'admin' && (
-        <div className="hidden md:flex items-center flex-1 max-w-lg relative">
-          <Search className="absolute left-4 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="What do you want to learn today?" 
-            className="w-full bg-slate-100 border-2 border-transparent focus:border-[#071739]/20 focus:bg-white rounded-2xl py-2.5 pl-12 pr-4 text-sm font-semibold transition-all outline-none placeholder:text-slate-400 placeholder:font-normal"
-          />
-        </div>
-      )}
+
 
       {/* Primary Navigation Links */}
       <nav className="hidden lg:flex items-center gap-1">
@@ -267,7 +278,7 @@ export default function Topbar() {
         {role === 'student' && studentLinks.map(link => (
           <Link key={link.href} href={link.href} className={clsx(
             "px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-slate-50",
-            pathname === link.href ? "text-[#071739]" : "text-slate-600"
+            pathname === link.href ? "text-primary" : "text-slate-600"
           )}>
             {link.label}
           </Link>
@@ -275,7 +286,7 @@ export default function Topbar() {
         {isAdmin && adminNavLinks.map(link => (
           <Link key={link.href} href={link.href} className={clsx(
             "px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-slate-50",
-            pathname === link.href ? "text-[#071739]" : "text-slate-600"
+            pathname === link.href ? "text-primary" : "text-slate-600"
           )}>
             {link.label}
           </Link>
@@ -306,7 +317,7 @@ export default function Topbar() {
                         onClick={() => setIsManagementOpen(false)}
                         className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 group transition-all"
                       >
-                        <link.icon size={18} className="text-slate-400 group-hover:text-[#071739]" />
+                        <link.icon size={18} className="text-slate-400 group-hover:text-primary" />
                         <span className="text-sm font-semibold text-slate-600 group-hover:text-slate-900 tracking-tight">{link.label}</span>
                       </Link>
                     ))}
@@ -318,16 +329,28 @@ export default function Topbar() {
         )}
       </nav>
 
+      {/* Search Bar */}
+      <div className="flex-1 max-w-md hidden lg:flex ml-4">
+        <div className="relative w-full group">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search size={18} className="text-slate-400 group-focus-within:text-primary transition-colors" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search courses, instructors, or analytics..."
+            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-2.5 pl-11 pr-4 text-sm font-medium outline-none focus:bg-white focus:border-primary/10 focus:ring-4 focus:ring-primary/5 transition-all placeholder:text-slate-400"
+          />
+        </div>
+      </div>
+
       {/* Right Side Actions */}
       <div className="flex items-center gap-3 ml-auto shrink-0">
         {role === 'student' && (
           <Link href="/dashboard/cart" className="p-2.5 text-slate-400 hover:bg-slate-50 rounded-xl transition-all relative group">
-            <ShoppingCart size={20} className="group-hover:text-[#071739] transition-colors" />
-            {items.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#071739] text-white text-[9px] font-semibold rounded-full flex items-center justify-center border border-white">
-                {items.length}
-              </span>
-            )}
+            <ShoppingCart size={20} className="group-hover:text-primary transition-colors" />
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[9px] font-semibold rounded-full flex items-center justify-center border border-white">
+              {mounted ? items.filter(i => i && i._id && (i.title || i.name)).length : 0}
+            </span>
           </Link>
         )}
 
@@ -343,10 +366,16 @@ export default function Topbar() {
           </div>
         )}
 
-        <button className="hidden sm:flex p-2.5 text-slate-400 hover:bg-slate-50 rounded-xl transition-all relative">
-          <Bell size={20} />
-          <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#071739] rounded-full border-2 border-white"></span>
+        <button 
+          onClick={() => setIsLanguageModalOpen(true)}
+          className="hidden sm:flex p-2.5 text-slate-400 hover:bg-slate-50 rounded-xl transition-all relative"
+        >
+          <Globe size={20} />
         </button>
+
+        <LanguageModal isOpen={isLanguageModalOpen} onClose={() => setIsLanguageModalOpen(false)} />
+
+        <NotificationBell />
 
         <div className="h-6 w-px bg-slate-100 mx-2 hidden lg:block"></div>
 
@@ -356,7 +385,7 @@ export default function Topbar() {
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="flex items-center gap-3 hover:bg-slate-50 p-1 rounded-2xl transition-all border border-transparent hover:border-slate-100"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#071739] overflow-hidden ring-4 ring-white shadow-lg shadow-slate-900/10">
+            <div className="w-10 h-10 rounded-xl bg-primary overflow-hidden ring-4 ring-white shadow-lg shadow-slate-900/10">
               <img 
                 src={`https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=071739&color=fff`} 
                 alt="Profile" 
@@ -384,13 +413,13 @@ export default function Topbar() {
                   <HelpCircle size={18} />
                   <span className="text-sm font-semibold">Get Support</span>
                 </Link>
-                <button 
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-50 text-rose-500 transition-all mt-1"
-                >
-                  <LogOut size={18} />
-                  <span className="text-sm font-semibold">Sign Out</span>
-                </button>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-50 text-rose-500 transition-all mt-1"
+                  >
+                    <LogOut size={18} />
+                    <span className="text-sm font-semibold text-rose-600">Log out</span>
+                  </button>
               </motion.div>
             )}
           </AnimatePresence>

@@ -1,38 +1,29 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/services/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import StudentDashboard from '../StudentDashboard';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function StudentPage() {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { user, isAuthenticated, isLoading } = useAuthStore();
     const router = useRouter();
 
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const res = await api.get('/auth/me');
-                const userData = res.data.data;
-                const role = userData.role.toLowerCase();
-                
-                if (role !== 'student') {
-                    router.push('/dashboard/' + role);
-                } else {
-                    setUser(userData);
-                }
-            } catch (err) {
+        if (!isLoading) {
+            if (!isAuthenticated) {
                 router.push('/login');
-            } finally {
-                setLoading(false);
+                return;
             }
-        };
-        fetchUser();
-    }, [router]);
+            
+            const role = user?.role?.toLowerCase();
+            if (role !== 'student') {
+                router.push('/dashboard/' + role);
+            }
+        }
+    }, [isLoading, isAuthenticated, user, router]);
 
-    if (loading) return null;
-    if (!user) return null;
+    if (isLoading || !isAuthenticated || user?.role?.toLowerCase() !== 'student') return null;
 
     return (
         <DashboardLayout>

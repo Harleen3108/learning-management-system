@@ -1,5 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useLanguageStore } from '@/store/useLanguageStore';
+import { translations } from '@/utils/translations';
 import HomeNavbar from '@/components/HomeNavbar';
 import Footer from '@/components/Footer';
 import CourseCard from '@/components/CourseCard';
@@ -36,6 +40,8 @@ export default function Home() {
   const [trendingCourses, setTrendingCourses] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { language } = useLanguageStore();
+  const t = translations[language] || translations.English;
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -107,13 +113,13 @@ export default function Home() {
                 className="max-w-lg bg-white p-6 lg:p-8 shadow-2xl rounded-none border-l-4 border-[#A68868] z-20 text-left"
             >
                 <h2 className="text-2xl lg:text-4xl font-bold text-slate-900 mb-4 leading-tight">
-                    Learn essential career and life skills
+                    {t.hero.title}
                 </h2>
                 <p className="text-base text-slate-600 mb-8 font-normal leading-relaxed">
-                    Eduflow helps you build in-demand skills fast and advance your career in a changing job market.
+                    {t.hero.subtitle}
                 </p>
                 <Link href="/explore" className="inline-block bg-[#071739] hover:bg-[#020a1a] text-white px-8 py-3 font-bold text-sm transition-all shadow-xl shadow-slate-900/20">
-                    Explore Courses
+                    {t.hero.button}
                 </Link>
             </motion.div>
         </div>
@@ -124,9 +130,9 @@ export default function Home() {
       <section className="py-16 px-6 bg-slate-50 border-y border-slate-100">
         <div className="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
             {[
-                { title: 'Class Schedule', icon: <Monitor className="text-primary" />, desc: 'Edoo provides engaging instructor led content for people everywhere and of all ages without having to leave the house.' },
-                { title: 'Instructor-Led Online Advantage', icon: <Users className="text-primary" />, desc: 'Edoo provides engaging instructor led content for people everywhere and of all ages without having to leave the house.' },
-                { title: '100% Satisfaction Guaranteed', icon: <CheckCircle className="text-primary" />, desc: 'Edoo provides engaging instructor led content for people everywhere and of all ages without having to leave the house.' },
+                { title: t.features.schedule, icon: <Monitor className="text-primary" />, desc: t.features.desc },
+                { title: t.features.advantage, icon: <Users className="text-primary" />, desc: t.features.desc },
+                { title: t.features.satisfaction, icon: <CheckCircle className="text-primary" />, desc: t.features.desc },
             ].map((feature, i) => (
                 <div key={i} className="flex gap-6 items-start group">
                     <div className="w-14 h-14 bg-white/80 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm">
@@ -149,12 +155,11 @@ export default function Home() {
             <div className="flex justify-between items-end mb-16">
                 <div>
                     <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight mb-4">
-                        Join Our 780+ Live Online <br/>
-                        Classes For Student
+                        {t.live.title}
                     </h2>
                 </div>
                 <Link href="/explore" className="text-sm font-bold text-slate-600 hover:text-primary flex items-center gap-2 mb-4 group transition-colors">
-                    View Online Classes
+                    {t.live.viewAll}
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
             </div>
@@ -263,11 +268,10 @@ export default function Home() {
 
             <div className="space-y-8">
                 <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight leading-tight">
-                    We Want To Give Students A <br/>
-                    Great Interactive Experience!
+                    {t.experience.title}
                 </h2>
                 <p className="text-lg text-slate-500 font-medium leading-relaxed">
-                    Edoo provides engaging instructor led content for people everywhere and of all ages, without having to leave the house.
+                    {t.experience.desc}
                 </p>
 
                 <div className="space-y-6 pt-4">

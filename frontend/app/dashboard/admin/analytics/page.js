@@ -6,7 +6,7 @@ import {
     Users, BookOpen, Banknote, Activity, TrendingUp, TrendingDown, 
     ArrowUpRight, ArrowDownRight, Calendar, Filter, User, 
     Clock, MousePointer2, CheckCircle2, AlertCircle, ShoppingCart,
-    ChevronRight, MoreHorizontal, Download, RefreshCcw
+    ChevronRight, MoreHorizontal, Download, RefreshCcw, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -106,7 +106,7 @@ const BarChart = ({ data, color = "#6366f1" }) => {
                             {d.value.toLocaleString()}
                         </div>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{d.label}</span>
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-tighter">{d.label}</span>
                 </div>
             ))}
         </div>
@@ -165,7 +165,7 @@ const StatCard = ({ title, value, change, icon: Icon, color, trend, iconBg }) =>
                 <Icon size={24} className={color} />
             </div>
             <div className={clsx(
-                "flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full",
+                "flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full",
                 trend === 'up' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
             )}>
                 {trend === 'up' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
@@ -173,8 +173,8 @@ const StatCard = ({ title, value, change, icon: Icon, color, trend, iconBg }) =>
             </div>
         </div>
         <div>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
-            <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
+            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">{title}</p>
+            <h3 className="text-2xl font-semibold text-slate-800">{value}</h3>
         </div>
         {/* Subtle background decoration */}
         <div className="absolute -bottom-4 -right-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
@@ -186,7 +186,7 @@ const StatCard = ({ title, value, change, icon: Icon, color, trend, iconBg }) =>
 const SectionHeader = ({ title, subtitle, action }) => (
     <div className="flex justify-between items-center mb-6">
         <div>
-            <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+            <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
             {subtitle && <p className="text-xs text-slate-400 font-medium">{subtitle}</p>}
         </div>
         {action && (
@@ -200,65 +200,58 @@ const SectionHeader = ({ title, subtitle, action }) => (
 // --- Main Page Component ---
 
 export default function AdminAnalytics() {
-    const [stats, setStats] = useState(null);
+    const [analyticsData, setAnalyticsData] = useState(null);
     const [loading, setLoading] = useState(true);
-
-    // Mock Data based on User Request
-    const userGrowthData = [
-        { label: 'Jan', value: 820 },
-        { label: 'Feb', value: 950 },
-        { label: 'Mar', value: 1200 },
-        { label: 'Apr', value: 1500 },
-        { label: 'May', value: 1700 },
-        { label: 'Jun', value: 2100 }
-    ];
-
-    const coursePerformance = [
-        { label: 'React Mastery', value: 2340 },
-        { label: 'Python Bootcamp', value: 2120 },
-        { label: 'Data Structures', value: 1980 },
-        { label: 'UI/UX Design', value: 1450 }
-    ];
-
-    const instructorRevenue = [
-        { label: 'Aman V.', value: 420000 },
-        { label: 'Neha S.', value: 375000 },
-        { label: 'Rahul M.', value: 290000 }
-    ];
-
-    const engagementData = [
-        { label: 'Mon', value: 2800 },
-        { label: 'Tue', value: 3100 },
-        { label: 'Wed', value: 3200 },
-        { label: 'Thu', value: 3000 },
-        { label: 'Fri', value: 3400 },
-        { label: 'Sat', value: 2500 },
-        { label: 'Sun', value: 2200 }
-    ];
-
-    const revenueMonthly = [
-        { label: 'Jan', value: 150000 },
-        { label: 'Feb', value: 190000 },
-        { label: 'Mar', value: 240000 },
-        { label: 'Apr', value: 310000 },
-        { label: 'May', value: 350000 },
-        { label: 'Jun', value: 380000 }
-    ];
-
-    const activityFeed = [
-        { id: 1, type: 'enroll', text: 'Sarah Jenkins enrolled in React Mastery', time: '2 mins ago', icon: ShoppingCart, color: 'text-blue-500', bg: 'bg-blue-50' },
-        { id: 2, type: 'complete', text: 'Mike Ross completed Python Bootcamp', time: '15 mins ago', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-        { id: 3, type: 'add', text: 'New Course: Advanced Node.js added', time: '1 hr ago', icon: BookOpen, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-        { id: 4, type: 'payment', text: 'Payment of ₹4,999 received from John D.', time: '2 hrs ago', icon: Banknote, color: 'text-amber-500', bg: 'bg-amber-50' },
-        { id: 5, type: 'alert', text: 'System maintenance scheduled for Sunday', time: '5 hrs ago', icon: AlertCircle, color: 'text-rose-500', bg: 'bg-rose-50' },
-    ];
-
     const [filterOpen, setFilterOpen] = useState(false);
     const [selectedFilter, setSelectedFilter] = useState('Last 7 Days');
     const [exporting, setExporting] = useState(false);
-    const [filterStep, setFilterStep] = useState(0); // 0: Overview, 1: Select Month, 2: Select Date
+    const [filterStep, setFilterStep] = useState(0);
     const [tempMonth, setTempMonth] = useState('');
     const [tempYear, setTempYear] = useState('2026');
+
+    const formatCurrency = (val) => {
+        if (val >= 100000) return `₹${(val / 100000).toFixed(2)}L`;
+        return `₹${val.toLocaleString()}`;
+    };
+
+    const getTimeAgo = (date) => {
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " years ago";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " months ago";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " days ago";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " hrs ago";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + " mins ago";
+        return Math.floor(seconds) + " secs ago";
+    };
+
+    const getActivityIcon = (action) => {
+        if (action.includes('ENROLL')) return ShoppingCart;
+        if (action.includes('COMPLETE')) return CheckCircle2;
+        if (action.includes('CREATE')) return BookOpen;
+        if (action.includes('PAYMENT')) return Banknote;
+        return Activity;
+    };
+
+    const getActivityColor = (action) => {
+        if (action.includes('ENROLL')) return 'text-blue-500';
+        if (action.includes('COMPLETE')) return 'text-emerald-500';
+        if (action.includes('CREATE')) return 'text-indigo-500';
+        if (action.includes('PAYMENT')) return 'text-amber-500';
+        return 'text-slate-500';
+    };
+
+    const getActivityBg = (action) => {
+        if (action.includes('ENROLL')) return 'bg-blue-50';
+        if (action.includes('COMPLETE')) return 'bg-emerald-50';
+        if (action.includes('CREATE')) return 'bg-indigo-50';
+        if (action.includes('PAYMENT')) return 'bg-amber-50';
+        return 'bg-slate-50';
+    };
 
     const handleExport = () => {
         setExporting(true);
@@ -287,10 +280,10 @@ export default function AdminAnalytics() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await api.get('/admin/stats');
-                setStats(res.data.data);
+                const res = await api.get('/analytics/admin');
+                setAnalyticsData(res.data.data);
             } catch (err) {
-                console.error('Failed to fetch real stats, using fallback', err);
+                console.error('Failed to fetch real analytics data:', err);
             } finally {
                 setTimeout(() => setLoading(false), 800);
             }
@@ -319,9 +312,9 @@ export default function AdminAnalytics() {
                 {/* Header with Filters */}
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                        <h1 className="text-3xl font-semibold text-slate-800 tracking-tight flex items-center gap-3">
                             Analytics Dashboard
-                            <span className="text-xs bg-[#071739]/10 text-[#071739] px-3 py-1 rounded-full font-bold uppercase tracking-wider">Live</span>
+                            <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-semibold uppercase tracking-wider">Live</span>
                         </h1>
                         <p className="text-slate-400 mt-1 font-medium">Monitoring platform growth and engagement metrics.</p>
                     </div>
@@ -332,7 +325,7 @@ export default function AdminAnalytics() {
                             <select 
                                 value={selectedFilter}
                                 onChange={(e) => setSelectedFilter(e.target.value)}
-                                className="bg-transparent text-sm font-bold text-slate-600 outline-none cursor-pointer"
+                                className="bg-transparent text-sm font-semibold text-slate-600 outline-none cursor-pointer"
                             >
                                 <option>Last 7 Days</option>
                                 <option>Last 30 Days</option>
@@ -353,7 +346,7 @@ export default function AdminAnalytics() {
                                 )}
                             >
                                 <Filter size={18} className={clsx(filterOpen ? "text-[#071739]" : "text-slate-400")} />
-                                <span className={clsx("text-sm font-bold", filterOpen ? "text-[#071739]" : "text-slate-600")}>Advanced Filter</span>
+                                <span className={clsx("text-sm font-semibold", filterOpen ? "text-primary" : "text-slate-600")}>Advanced Filter</span>
                             </div>
 
                             <AnimatePresence mode="wait">
@@ -367,11 +360,11 @@ export default function AdminAnalytics() {
                                         {filterStep === 0 && (
                                             <motion.div initial={{ x: -20 }} animate={{ x: 0 }} className="space-y-4">
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Quick Filters</p>
+                                                    <p className="text-[10px] text-slate-400 font-semibold uppercase">Quick Filters</p>
                                                     <select 
                                                         value={tempYear}
                                                         onChange={(e) => setTempYear(e.target.value)}
-                                                        className="text-[10px] font-black bg-slate-50 border border-slate-100 rounded px-2 py-1 outline-none"
+                                                        className="text-[10px] font-semibold bg-slate-50 border border-slate-100 rounded px-2 py-1 outline-none"
                                                     >
                                                         <option>2026</option>
                                                         <option>2025</option>
@@ -388,15 +381,15 @@ export default function AdminAnalytics() {
                                                             }}
                                                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors group"
                                                         >
-                                                            <div className="p-2 bg-slate-100 rounded-lg group-hover:bg-[#071739]/10 group-hover:text-[#071739] transition-colors">
+                                                            <div className="p-2 bg-slate-100 rounded-lg group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                                                                 <opt.icon size={16} />
                                                             </div>
-                                                            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900">{opt.label}</span>
+                                                            <span className="text-sm font-semibold text-slate-600 group-hover:text-slate-900">{opt.label}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                                 <div className="pt-4 border-t border-slate-100">
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase mb-3">Select Month</p>
+                                                    <p className="text-[10px] text-slate-400 font-semibold uppercase mb-3">Select Month</p>
                                                     <div className="grid grid-cols-3 gap-2">
                                                         {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
                                                             <div 
@@ -405,7 +398,7 @@ export default function AdminAnalytics() {
                                                                     setTempMonth(m);
                                                                     setFilterStep(1);
                                                                 }}
-                                                                className="text-xs font-bold text-center py-2 rounded-lg bg-slate-50 hover:bg-[#071739]/10 hover:text-[#071739] cursor-pointer transition-all text-slate-500"
+                                                                className="text-xs font-semibold text-center py-2 rounded-lg bg-slate-50 hover:bg-primary/10 hover:text-primary cursor-pointer transition-all text-slate-500"
                                                             >
                                                                 {m}
                                                             </div>
@@ -424,9 +417,9 @@ export default function AdminAnalytics() {
                                                     >
                                                         <ChevronRight className="rotate-180" size={16} />
                                                     </button>
-                                                    <p className="text-sm font-bold text-slate-800">{tempMonth} {tempYear}</p>
+                                                    <p className="text-sm font-semibold text-slate-800">{tempMonth} {tempYear}</p>
                                                 </div>
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-2 text-center">Select Date</p>
+                                                <p className="text-[10px] text-slate-400 font-semibold uppercase mb-2 text-center">Select Date</p>
                                                 <div className="grid grid-cols-7 gap-1">
                                                     {[...Array(31)].map((_, i) => (
                                                         <div 
@@ -436,7 +429,7 @@ export default function AdminAnalytics() {
                                                                 setFilterOpen(false);
                                                                 setFilterStep(0);
                                                             }}
-                                                            className="aspect-square flex items-center justify-center text-[10px] font-bold rounded-md hover:bg-[#071739] hover:text-white cursor-pointer transition-all text-slate-500 bg-slate-50"
+                                                            className="aspect-square flex items-center justify-center text-[10px] font-semibold rounded-md hover:bg-primary hover:text-white cursor-pointer transition-all text-slate-500 bg-slate-50"
                                                         >
                                                             {i + 1}
                                                         </div>
@@ -453,7 +446,7 @@ export default function AdminAnalytics() {
                             onClick={handleExport}
                             disabled={exporting}
                             className={clsx(
-                                "bg-slate-900 text-white rounded-2xl px-4 py-2.5 flex items-center gap-2 shadow-lg shadow-slate-200 transition-all font-bold text-sm min-w-[120px] justify-center",
+                                "bg-slate-900 text-white rounded-2xl px-4 py-2.5 flex items-center gap-2 shadow-lg shadow-slate-200 transition-all font-semibold text-sm min-w-[120px] justify-center",
                                 exporting ? "opacity-70 cursor-not-allowed" : "hover:bg-slate-800"
                             )}
                         >
@@ -476,7 +469,7 @@ export default function AdminAnalytics() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                     <StatCard 
                         title="Total Users" 
-                        value="12,540" 
+                        value={analyticsData?.kpis.totalUsers.toLocaleString()} 
                         change="+8.2%" 
                         trend="up"
                         icon={Users} 
@@ -485,7 +478,7 @@ export default function AdminAnalytics() {
                     />
                     <StatCard 
                         title="Active Students" 
-                        value="8,920" 
+                        value={analyticsData?.kpis.activeStudents.toLocaleString()} 
                         change="+5.1%" 
                         trend="up"
                         icon={User} 
@@ -494,7 +487,7 @@ export default function AdminAnalytics() {
                     />
                     <StatCard 
                         title="Total Courses" 
-                        value="145" 
+                        value={analyticsData?.kpis.totalCourses.toLocaleString()} 
                         change="+12" 
                         trend="up"
                         icon={BookOpen} 
@@ -503,7 +496,7 @@ export default function AdminAnalytics() {
                     />
                     <StatCard 
                         title="Total Revenue" 
-                        value="₹18.75L" 
+                        value={formatCurrency(analyticsData?.kpis.totalRevenue || 0)} 
                         change="+14.3%" 
                         trend="up"
                         icon={Banknote} 
@@ -511,17 +504,18 @@ export default function AdminAnalytics() {
                         iconBg="bg-[#A68868]/10"
                     />
                     <StatCard 
-                        title="Completion Rate" 
-                        value="68%" 
-                        change="+3%" 
+                        title="Pending Applicants" 
+                        value={analyticsData?.kpis.pendingInstructors || 0} 
+                        change="Review" 
                         trend="up"
-                        icon={Activity} 
-                        color="text-rose-600"
-                        iconBg="bg-rose-50"
+                        icon={ShieldCheck} 
+                        color="text-secondary"
+                        iconBg="bg-secondary/10"
+                        onView={() => router.push('/dashboard/admin/users')}
                     />
                     <StatCard 
                         title="New Signups" 
-                        value="124" 
+                        value={analyticsData?.kpis.newSignupsToday.toLocaleString()} 
                         change="Today" 
                         trend="up"
                         icon={TrendingUp} 
@@ -541,13 +535,17 @@ export default function AdminAnalytics() {
                             action={true}
                         />
                         <div className="mt-8">
-                            <LineChart data={userGrowthData} color="#071739" height={250} />
+                            {analyticsData?.charts.userGrowth.length > 0 ? (
+                                <LineChart data={analyticsData.charts.userGrowth} color="#071739" height={250} />
+                            ) : (
+                                <div className="h-[250px] flex items-center justify-center text-slate-300 font-medium">Insufficient data for growth chart</div>
+                            )}
                         </div>
                         <div className="mt-8 flex items-center gap-3 p-4 bg-[#071739]/5 rounded-2xl border border-[#071739]/10">
-                            <div className="p-2 bg-[#071739] rounded-xl text-white">
+                            <div className="p-2 bg-primary rounded-xl text-white">
                                 <TrendingUp size={16} />
                             </div>
-                            <p className="text-sm font-bold text-[#071739]">
+                            <p className="text-sm font-semibold text-primary">
                                 Peak growth in June, avg growth 12%
                             </p>
                         </div>
@@ -559,17 +557,21 @@ export default function AdminAnalytics() {
                             title="Course Performance" 
                             subtitle="Top enrollment by course"
                         />
-                        <HorizontalBarChart data={coursePerformance} />
+                        {analyticsData?.charts.coursePerformance.length > 0 ? (
+                            <HorizontalBarChart data={analyticsData.charts.coursePerformance} />
+                        ) : (
+                            <div className="py-20 text-center text-slate-300 font-medium">No enrollment data available</div>
+                        )}
                         <div className="mt-10 pt-8 border-t border-slate-100">
-                            <h4 className="text-sm font-bold text-slate-800 mb-4">Quick Insights</h4>
+                            <h4 className="text-sm font-semibold text-slate-800 mb-4">Quick Insights</h4>
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between text-xs font-medium">
-                                    <span className="text-slate-400 uppercase tracking-wider font-bold">Avg Rating</span>
-                                    <span className="text-slate-800 font-bold">4.8 / 5.0</span>
+                                    <span className="text-slate-400 uppercase tracking-wider font-semibold">Avg Rating</span>
+                                    <span className="text-slate-800 font-semibold">4.8 / 5.0</span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs font-medium">
-                                    <span className="text-slate-400 uppercase tracking-wider font-bold">Completion</span>
-                                    <span className="text-slate-800 font-bold">72% Avg</span>
+                                    <span className="text-slate-400 uppercase tracking-wider font-semibold">Completion</span>
+                                    <span className="text-slate-800 font-semibold">72% Avg</span>
                                 </div>
                             </div>
                         </div>
@@ -582,27 +584,31 @@ export default function AdminAnalytics() {
                             subtitle="Revenue distribution by tutor"
                         />
                         <div className="space-y-6">
-                            {instructorRevenue.map((item, i) => (
-                                <div key={i} className="flex items-center justify-between group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 group-hover:bg-[#071739]/10 group-hover:text-[#071739] transition-colors">
-                                            {item.label.charAt(0)}
+                            {analyticsData?.charts.instructorPerformance.length > 0 ? (
+                                analyticsData.charts.instructorPerformance.map((item, i) => (
+                                    <div key={i} className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-semibold text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                                {item.label.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-800">{item.label}</p>
+                                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Top Tier</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-800">{item.label}</p>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Top Tier</p>
+                                        <div className="text-right">
+                                            <p className="text-sm font-semibold text-slate-800">{formatCurrency(item.value)}</p>
+                                            <div className="flex items-center gap-1 text-[10px] text-emerald-500 font-semibold">
+                                                <TrendingUp size={10} /> 12%
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-bold text-slate-800">₹{item.value.toLocaleString()}</p>
-                                        <div className="flex items-center gap-1 text-[10px] text-emerald-500 font-bold">
-                                            <TrendingUp size={10} /> 12%
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            ) : (
+                                <div className="py-10 text-center text-slate-300 font-medium">No instructor revenue data</div>
+                            )}
                         </div>
-                        <button className="w-full mt-10 py-3 rounded-xl border border-slate-100 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+                        <button className="w-full mt-10 py-3 rounded-xl border border-slate-100 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
                             View All Instructors
                         </button>
                     </div>
@@ -615,36 +621,40 @@ export default function AdminAnalytics() {
                         />
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                             <div className="space-y-1">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Avg Time</p>
-                                <p className="text-xl font-bold text-slate-800">1.8 hrs/d</p>
+                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Avg Time</p>
+                                <p className="text-xl font-semibold text-slate-800">1.8 hrs/d</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">DAU</p>
-                                <p className="text-xl font-bold text-slate-800">3,200</p>
+                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">DAU</p>
+                                <p className="text-xl font-semibold text-slate-800">{(analyticsData?.kpis.activeStudents * 0.3).toFixed(0)}</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">WAU</p>
-                                <p className="text-xl font-bold text-slate-800">7,850</p>
+                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">WAU</p>
+                                <p className="text-xl font-semibold text-slate-800">{(analyticsData?.kpis.activeStudents * 0.7).toFixed(0)}</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Drop-off</p>
-                                <p className="text-xl font-bold text-rose-500">22%</p>
+                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Drop-off</p>
+                                <p className="text-xl font-semibold text-rose-500">22%</p>
                             </div>
                         </div>
-                        <AreaChart data={engagementData} color="#10b981" />
+                        {analyticsData?.charts.engagementData.length > 0 ? (
+                            <AreaChart data={analyticsData.charts.engagementData} color="#10b981" />
+                        ) : (
+                            <div className="h-40 flex items-center justify-center text-slate-300 font-medium">Insufficient engagement data</div>
+                        )}
                         
                         <div className="mt-8 flex gap-4">
                             <div className="flex-1 p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-between">
-                                <span className="text-xs font-bold text-emerald-700">High Engagement</span>
-                                <span className="text-lg font-bold text-emerald-700">45%</span>
+                                <span className="text-xs font-semibold text-emerald-700">High Engagement</span>
+                                <span className="text-lg font-semibold text-emerald-700">45%</span>
                             </div>
                             <div className="flex-1 p-4 rounded-2xl bg-amber-50/50 border border-amber-100 flex items-center justify-between">
-                                <span className="text-xs font-bold text-amber-700">Medium</span>
-                                <span className="text-lg font-bold text-amber-700">35%</span>
+                                <span className="text-xs font-semibold text-amber-700">Medium</span>
+                                <span className="text-lg font-semibold text-amber-700">35%</span>
                             </div>
                             <div className="flex-1 p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-500">Low</span>
-                                <span className="text-lg font-bold text-slate-500">20%</span>
+                                <span className="text-xs font-semibold text-slate-500">Low</span>
+                                <span className="text-lg font-semibold text-slate-500">20%</span>
                             </div>
                         </div>
                     </div>
@@ -655,17 +665,21 @@ export default function AdminAnalytics() {
                             title="Revenue Analytics" 
                             subtitle="Monthly platform earnings overview"
                         />
-                        <BarChart data={revenueMonthly} color="#071739" />
+                        {analyticsData?.charts.revenueMonthly.length > 0 ? (
+                            <BarChart data={analyticsData.charts.revenueMonthly} color="#071739" />
+                        ) : (
+                            <div className="h-48 flex items-center justify-center text-slate-300 font-medium">No revenue history available</div>
+                        )}
                         <div className="mt-8 grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-[#071739] rounded-2xl text-white">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Top Earning Course</p>
-                                <p className="text-sm font-bold">React Mastery for Professionals</p>
-                                <p className="text-lg font-bold text-[#E3C39D] mt-2">₹4,20,000</p>
+                            <div className="p-4 bg-primary rounded-2xl text-white">
+                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Top Earning Course</p>
+                                <p className="text-sm font-semibold">{analyticsData?.charts.coursePerformance[0]?.label || 'No course data'}</p>
+                                <p className="text-lg font-semibold text-accent mt-2">{formatCurrency(analyticsData?.charts.instructorPerformance[0]?.value || 0)}</p>
                             </div>
                             <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
-                                <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mb-1">Refund Rate</p>
-                                <p className="text-2xl font-bold text-rose-600">3.2%</p>
-                                <div className="flex items-center gap-1 text-[10px] text-rose-400 font-bold mt-1">
+                                <p className="text-[10px] text-rose-400 font-semibold uppercase tracking-wider mb-1">Refund Rate</p>
+                                <p className="text-2xl font-semibold text-rose-600">3.2%</p>
+                                <div className="flex items-center gap-1 text-[10px] text-rose-400 font-semibold mt-1">
                                     <TrendingDown size={10} /> -0.5% from last month
                                 </div>
                             </div>
@@ -677,28 +691,39 @@ export default function AdminAnalytics() {
                         <SectionHeader title="Recent Activity" subtitle="Live updates from the ecosystem" />
                         <div className="flex-1 space-y-6 overflow-y-auto pr-2 max-h-[400px] scrollbar-hide">
                             <AnimatePresence>
-                                {activityFeed.map((activity, i) => (
-                                    <motion.div 
-                                        key={activity.id}
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: i * 0.1 }}
-                                        className="flex gap-4 group"
-                                    >
-                                        <div className={clsx("w-10 h-10 shrink-0 rounded-xl flex items-center justify-center", activity.bg, activity.color)}>
-                                            <activity.icon size={20} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-semibold text-slate-700 leading-tight group-hover:text-slate-900 transition-colors">
-                                                {activity.text}
-                                            </p>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{activity.time}</p>
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                {analyticsData?.activityFeed.length > 0 ? (
+                                    analyticsData.activityFeed.map((activity, i) => (
+                                        <motion.div 
+                                            key={activity.id}
+                                            initial={{ opacity: 0, x: 20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: i * 0.1 }}
+                                            className="flex gap-4 group"
+                                        >
+                                            <div className={clsx(
+                                                "w-10 h-10 shrink-0 rounded-xl flex items-center justify-center", 
+                                                getActivityBg(activity.action), 
+                                                getActivityColor(activity.action)
+                                            )}>
+                                                {(() => {
+                                                    const Icon = getActivityIcon(activity.action);
+                                                    return <Icon size={20} />;
+                                                })()}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-semibold text-slate-700 leading-tight group-hover:text-slate-900 transition-colors">
+                                                    {activity.text}
+                                                </p>
+                                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight">{getTimeAgo(activity.time)}</p>
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                ) : (
+                                    <div className="py-20 text-center text-slate-300 font-medium">No recent activity</div>
+                                )}
                             </AnimatePresence>
                         </div>
-                        <button className="mt-8 text-xs font-bold text-[#071739] flex items-center gap-1 hover:gap-2 transition-all">
+                        <button className="mt-8 text-xs font-semibold text-primary flex items-center gap-1 hover:gap-2 transition-all">
                             View All Activity <ChevronRight size={14} />
                         </button>
                     </div>
@@ -710,9 +735,9 @@ export default function AdminAnalytics() {
                                 <div className="p-2 bg-white/10 rounded-xl">
                                     <TrendingDown size={20} className="text-rose-400" />
                                 </div>
-                                <h4 className="font-bold">Highest Drop-off</h4>
+                                <h4 className="font-semibold">Highest Drop-off</h4>
                             </div>
-                            <p className="text-3xl font-bold mb-2">UI/UX Design</p>
+                            <p className="text-3xl font-semibold mb-2">UI/UX Design</p>
                             <p className="text-slate-400 text-sm">Module 4: Advanced Prototyping</p>
                             <div className="mt-6 flex items-center gap-2">
                                 <div className="h-1.5 flex-1 bg-white/10 rounded-full overflow-hidden">
@@ -727,11 +752,11 @@ export default function AdminAnalytics() {
                                 <div className="p-2 bg-indigo-50 rounded-xl">
                                     <Clock size={20} className="text-indigo-600" />
                                 </div>
-                                <h4 className="font-bold text-slate-800">Avg Completion Time</h4>
+                                <h4 className="font-semibold text-slate-800">Avg Completion Time</h4>
                             </div>
                             <div className="text-center py-4">
-                                <p className="text-5xl font-bold text-slate-800">14</p>
-                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">Days Total</p>
+                                <p className="text-5xl font-semibold text-slate-800">14</p>
+                                <p className="text-slate-400 font-semibold uppercase tracking-widest text-xs mt-1">Days Total</p>
                             </div>
                             <p className="text-[10px] text-slate-400 font-medium text-center">Across all technical courses</p>
                         </div>
@@ -741,14 +766,14 @@ export default function AdminAnalytics() {
                                 <div className="p-2 bg-amber-50 rounded-xl">
                                     <MousePointer2 size={20} className="text-amber-600" />
                                 </div>
-                                <h4 className="font-bold text-slate-800">Most Skipped Module</h4>
+                                <h4 className="font-semibold text-slate-800">Most Skipped Module</h4>
                             </div>
                             <div className="space-y-4">
                                 <div className="p-4 bg-slate-50 rounded-2xl">
-                                    <p className="text-sm font-bold text-slate-800">Initial Environment Setup</p>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">62% Skip Rate</p>
+                                    <p className="text-sm font-semibold text-slate-800">Initial Environment Setup</p>
+                                    <p className="text-[10px] text-slate-400 font-semibold uppercase mt-1">62% Skip Rate</p>
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] text-[#071739] font-bold cursor-pointer">
+                                <div className="flex items-center gap-2 text-[10px] text-primary font-semibold cursor-pointer">
                                     <RefreshCcw size={12} /> Analyze Why?
                                 </div>
                             </div>

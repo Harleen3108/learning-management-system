@@ -53,7 +53,7 @@ export default function CourseDetailsPage({ params }) {
             {/* Left Content */}
             <div className="lg:col-span-2 space-y-10">
                 <header className="space-y-4">
-                    <span className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">{course.category}</span>
+                    <span className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">{course.category?.name ?? course.category}</span>
                     <h1 className="text-5xl font-black text-slate-900 leading-[1.1]">{course.title}</h1>
                     <p className="text-xl text-slate-500 font-medium leading-relaxed">{course.description}</p>
                     

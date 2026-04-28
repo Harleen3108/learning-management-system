@@ -112,7 +112,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                     <div className="p-8 max-h-[90vh] overflow-y-auto no-scrollbar">
                         <div className="flex justify-between items-start mb-8">
                             <div>
-                                <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+                                <h2 className="text-2xl font-semibold text-slate-800 tracking-tight">
                                     {user ? 'Edit User Profile' : 'Provision New User'}
                                 </h2>
                                 <p className="text-slate-400 text-sm mt-1">
@@ -131,7 +131,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                             <motion.div 
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-sm font-bold"
+                                className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-sm font-semibold"
                             >
                                 <AlertCircle size={18} />
                                 {error}
@@ -142,7 +142,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                             {/* Identity Section */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
                                     <div className="relative">
                                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <input
@@ -157,7 +157,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
                                     <div className="relative">
                                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <input
@@ -175,7 +175,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
                                     <div className="relative">
                                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <input
@@ -189,13 +189,13 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Role</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Role</label>
                                     <div className="relative">
                                         <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                         <select
                                             value={formData.role}
                                             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-700 appearance-none cursor-pointer"
+                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-semibold text-slate-700 appearance-none cursor-pointer"
                                         >
                                             <option value="student">Student</option>
                                             <option value="instructor">Instructor</option>
@@ -217,11 +217,11 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                     >
                                         <div className="flex items-center gap-2 text-blue-600 mb-2">
                                             <Calendar size={16} />
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest">Student Specifics</h4>
+                                            <h4 className="text-[10px] font-semibold uppercase tracking-widest">Student Specifics</h4>
                                         </div>
                                         
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date of Birth</label>
+                                            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Date of Birth</label>
                                             <input
                                                 type="date"
                                                 value={formData.dob}
@@ -233,10 +233,10 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                         <div className="space-y-4 pt-4 border-t border-slate-50">
                                             <div className="flex items-center gap-2 text-rose-500">
                                                 <Heart size={16} fill="currentColor" />
-                                                <h4 className="text-[10px] font-black uppercase tracking-widest">Guardian Link</h4>
+                                                <h4 className="text-[10px] font-semibold uppercase tracking-widest">Guardian Link</h4>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Guardian Name</label>
+                                                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Guardian Name</label>
                                                 <input
                                                     type="text"
                                                     value={formData.parentName}
@@ -247,7 +247,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Guardian Email</label>
+                                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Guardian Email</label>
                                                     <input
                                                         type="email"
                                                         value={formData.parentEmail}
@@ -257,7 +257,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Guardian Phone</label>
+                                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Guardian Phone</label>
                                                     <input
                                                         type="tel"
                                                         value={formData.parentPhone}
@@ -280,11 +280,11 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                      >
                                          <div className="flex items-center gap-2 text-blue-600 mb-2">
                                              <Shield size={16} />
-                                             <h4 className="text-[10px] font-black uppercase tracking-widest">Instructor Profile</h4>
+                                             <h4 className="text-[10px] font-semibold uppercase tracking-widest">Instructor Profile</h4>
                                          </div>
 
                                          <div className="space-y-2">
-                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Specialty / Title</label>
+                                             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Specialty / Title</label>
                                              <input
                                                  type="text"
                                                  value={formData.instructorSpecialty}
@@ -295,7 +295,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                          </div>
 
                                          <div className="space-y-2">
-                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bio</label>
+                                             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Bio</label>
                                              <textarea
                                                  value={formData.instructorBio}
                                                  onChange={(e) => setFormData({ ...formData, instructorBio: e.target.value })}
@@ -306,7 +306,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                          </div>
 
                                          <div className="space-y-2">
-                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Profile Photo URL</label>
+                                             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Profile Photo URL</label>
                                              <input
                                                  type="text"
                                                  value={formData.profilePhoto}
@@ -320,7 +320,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                             </AnimatePresence>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest ml-1">
                                     {user ? 'Reset Password' : 'Security Key'}
                                 </label>
                                 <div className="relative">
@@ -339,14 +339,14 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, user = null }
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="flex-1 py-4 px-6 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95"
+                                    className="flex-1 py-4 px-6 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl font-semibold uppercase tracking-widest text-xs transition-all active:scale-95"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="flex-1 py-4 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-50"
+                                    className="flex-1 py-4 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold uppercase tracking-widest text-xs transition-all shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-50"
                                 >
                                     {loading ? 'Processing...' : user ? 'Save Changes' : 'Provision User'}
                                 </button>

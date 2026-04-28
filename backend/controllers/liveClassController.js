@@ -30,6 +30,21 @@ exports.scheduleLiveClass = async (req, res, next) => {
             entityId: liveClass._id
         });
 
+        // Notify all enrolled students
+        try {
+            const { notifyCourseStudents } = require('../services/notify');
+            const when = new Date(liveClass.scheduledAt).toLocaleString([], {
+                weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            await notifyCourseStudents(course._id, {
+                type: 'new_live_class',
+                title: 'New live session scheduled',
+                message: `"${liveClass.title}" — ${when} (${course.title}).`,
+                link: '/dashboard/student/live',
+                entity: { type: 'LiveClass', id: liveClass._id }
+            });
+        } catch (e) { console.error('[notify] new live class:', e.message); }
+
         res.status(201).json({ success: true, data: liveClass });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });

@@ -26,9 +26,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import api from '@/services/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 const menuItems = [
     { name: 'Analytics', icon: LayoutDashboard, href: '/dashboard/admin/analytics' },
+    { name: 'Applications', icon: FileText, href: '/dashboard/admin/instructor-applications' },
     { name: 'Instructors', icon: UserCheck, href: '/dashboard/admin/instructors' },
     { name: 'Users', icon: Users, href: '/dashboard/admin/users' },
     { name: 'Course Approvals', icon: CheckCircle2, href: '/dashboard/admin/courses' },
@@ -47,25 +49,15 @@ export default function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsColl
     const pathname = usePathname();
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
-    const [user, setUser] = useState(null);
+    const { user, logout } = useAuthStore();
 
     useEffect(() => {
         setMounted(true);
-        const fetchMe = async () => {
-            try {
-                const res = await api.get('/auth/me');
-                setUser(res.data.data);
-            } catch (err) {
-                console.error('Failed to fetch user:', err);
-            }
-        };
-        fetchMe();
     }, []);
 
     const handleLogout = () => {
         if (window.confirm('Are you sure you want to terminate the session?')) {
-            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            router.push('/login');
+            logout(router);
         }
     };
 
@@ -92,14 +84,14 @@ export default function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsColl
                         className="flex items-center gap-2"
                     >
                         <div>
-                            <h1 className="font-bold text-[#071739] tracking-tighter text-2xl leading-none">EduFlow</h1>
-                            <p className="text-[10px] text-[#A68868] font-bold uppercase tracking-widest leading-none mt-1.5">Administrator</p>
+                            <h1 className="font-semibold text-[#071739] tracking-tighter text-2xl leading-none">EduFlow</h1>
+                            <p className="text-[10px] text-[#A68868] font-semibold uppercase tracking-widest leading-none mt-1.5">Administrator</p>
                         </div>
                     </motion.div>
                 )}
                 {isCollapsed && (
                     <div className="w-10 h-10 bg-[#071739] rounded-xl flex items-center justify-center mx-auto shadow-lg shadow-slate-900/10">
-                        <span className="text-white font-bold text-xl">E</span>
+                        <span className="text-white font-semibold text-xl">E</span>
                     </div>
                 )}
                 <button 
@@ -135,7 +127,7 @@ export default function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsColl
                                     : "text-slate-500 hover:bg-slate-50 hover:text-[#071739]"
                             )}>
                                 <item.icon size={20} className={clsx(isActive ? "text-white" : "text-slate-400 group-hover:text-[#071739]")} />
-                                {!isCollapsed && <span className="text-[14px] font-bold tracking-tight">{item.name}</span>}
+                                {!isCollapsed && <span className="text-[14px] font-semibold tracking-tight">{item.name}</span>}
                                 {isActive && (
                                     <motion.div 
                                         layoutId="active-pill"
@@ -156,7 +148,7 @@ export default function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsColl
                         pathname === '/dashboard/admin/support' ? "bg-[#071739] text-white shadow-xl" : "text-slate-500 hover:bg-slate-50 hover:text-[#071739]"
                     )}>
                         <LifeBuoy size={20} className={pathname === '/dashboard/admin/support' ? "text-white" : "text-slate-400 group-hover:text-[#071739]"} />
-                        {!isCollapsed && <span className="text-[14px] font-bold tracking-tight">Support Desk</span>}
+                        {!isCollapsed && <span className="text-[14px] font-semibold tracking-tight">Support Desk</span>}
                     </div>
                 </Link>
                 <div className="pt-4 border-t border-slate-100">
@@ -166,8 +158,8 @@ export default function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsColl
                         </div>
                         {!isCollapsed && (
                             <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-bold text-slate-900 truncate uppercase tracking-tight">{user?.name || 'Loading...'}</p>
-                                <p className="text-[9px] text-[#A68868] truncate font-bold uppercase tracking-widest">{user?.role || 'Admin'}</p>
+                                <p className="text-[11px] font-semibold text-slate-900 truncate uppercase tracking-tight">{user?.name || 'Loading...'}</p>
+                                <p className="text-[9px] text-[#A68868] truncate font-semibold uppercase tracking-widest">{user?.role || 'Admin'}</p>
                             </div>
                         )}
                         {!isCollapsed && (

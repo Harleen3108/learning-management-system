@@ -119,7 +119,7 @@ export default function AdminCategories() {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Category Master</h1>
+                        <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Category Master</h1>
                         <p className="text-slate-500 font-medium mt-1">Manage the platform's course taxonomy and discovery structure.</p>
                     </div>
                     <button 
@@ -127,7 +127,7 @@ export default function AdminCategories() {
                             setFormData({ name: '', description: '', parentId: null, isVisibleOnHome: false, topics: '' });
                             setIsAddModalOpen(true);
                         }}
-                        className="bg-[#071739] text-white px-6 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-xl shadow-[#071739]/10"
+                        className="bg-primary text-white px-6 py-3 rounded-2xl font-semibold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-xl shadow-primary/10"
                     >
                         <Plus size={18} /> Add Category
                     </button>
@@ -138,7 +138,7 @@ export default function AdminCategories() {
                     <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <LayoutGrid size={20} className="text-slate-400" />
-                            <span className="font-bold text-slate-700">Hierarchy View</span>
+                            <span className="font-semibold text-slate-700">Hierarchy View</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="relative">
@@ -154,11 +154,11 @@ export default function AdminCategories() {
 
                     <div className="divide-y divide-slate-50">
                         {loading ? (
-                            <div className="p-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest animate-pulse">
+                            <div className="p-20 text-center text-slate-400 font-semibold uppercase text-[10px] tracking-widest animate-pulse">
                                 Loading taxonomy...
                             </div>
                         ) : mainCategories.length === 0 ? (
-                            <div className="p-20 text-center text-slate-400 font-bold">No categories found. Start by adding one.</div>
+                            <div className="p-20 text-center text-slate-400 font-semibold">No categories found. Start by adding one.</div>
                         ) : mainCategories.map(category => (
                             <div key={category._id} className="group">
                                 {/* Category Row */}
@@ -175,8 +175,8 @@ export default function AdminCategories() {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <h3 className="font-black text-slate-800">{category.name}</h3>
-                                                {category.isVisibleOnHome && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase rounded">Home</span>}
+                                                <h3 className="font-semibold text-slate-800">{category.name}</h3>
+                                                {category.isVisibleOnHome && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-semibold uppercase rounded">Home</span>}
                                             </div>
                                             <p className="text-xs text-slate-400 font-medium line-clamp-1 max-w-md">{category.description}</p>
                                         </div>
@@ -185,9 +185,9 @@ export default function AdminCategories() {
                                     <div className="flex items-center gap-4">
                                         <div className="hidden md:flex flex-wrap gap-1 max-w-xs justify-end">
                                             {category.topics.slice(0, 3).map(t => (
-                                                <span key={t} className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-bold rounded-lg">{t}</span>
+                                                <span key={t} className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-semibold rounded-lg">{t}</span>
                                             ))}
-                                            {category.topics.length > 3 && <span className="text-[9px] text-slate-400 font-bold">+{category.topics.length - 3}</span>}
+                                            {category.topics.length > 3 && <span className="text-[9px] text-slate-400 font-semibold">+{category.topics.length - 3}</span>}
                                         </div>
                                         <div className="h-8 w-px bg-slate-100 mx-2"></div>
                                         <div className="flex items-center gap-1">
@@ -210,7 +210,7 @@ export default function AdminCategories() {
                                 {/* Subcategories */}
                                 <AnimatePresence>
                                     {expandedIds.has(category._id) && (
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
@@ -221,17 +221,17 @@ export default function AdminCategories() {
                                                     <div key={sub._id} className="p-3 flex items-center justify-between hover:bg-white hover:shadow-sm rounded-xl transition-all">
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
-                                                            <span className="text-sm font-bold text-slate-700">{sub.name}</span>
-                                                            <span className="text-[10px] text-slate-400 font-medium">({sub.topics.length} topics)</span>
+                                                            <span className="text-sm font-semibold text-slate-700">{sub.name}</span>
+                                                            <span className="text-[10px] text-slate-400 font-medium">{sub.description}</span>
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => openEdit(sub)}
                                                                 className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg transition-all"
                                                             >
                                                                 <Edit2 size={14} />
                                                             </button>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleDelete(sub._id)}
                                                                 className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-all"
                                                             >
@@ -240,12 +240,19 @@ export default function AdminCategories() {
                                                         </div>
                                                     </div>
                                                 ))}
-                                                <button 
+                                                <button
+                                                    type="button"
                                                     onClick={() => {
-                                                        setFormData({ name: '', description: '', parentId: category._id, isVisibleOnHome: false, topics: '' });
+                                                        setFormData({
+                                                            name: '',
+                                                            description: '',
+                                                            parentId: category._id,
+                                                            isVisibleOnHome: false,
+                                                            topics: ''
+                                                        });
                                                         setIsAddModalOpen(true);
                                                     }}
-                                                    className="w-full mt-2 p-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-bold hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
+                                                    className="w-full flex items-center gap-2 p-3 text-sm font-semibold text-primary hover:bg-primary/5 rounded-xl transition-all border border-dashed border-slate-200 hover:border-primary"
                                                 >
                                                     <Plus size={14} /> Add Subcategory to {category.name}
                                                 </button>
@@ -266,7 +273,7 @@ export default function AdminCategories() {
                         <motion.div 
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}
-                            className="absolute inset-0 bg-[#071739]/60 backdrop-blur-sm"
+                            className="absolute inset-0 bg-primary/60 backdrop-blur-sm"
                         />
                         <motion.div 
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -275,69 +282,81 @@ export default function AdminCategories() {
                             className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden"
                         >
                             <form onSubmit={isAddModalOpen ? handleCreate : handleUpdate} className="p-10 space-y-6">
-                                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                                    {isAddModalOpen ? 'Create Category' : 'Edit Category'}
-                                </h2>
-                                
+                                <div>
+                                    <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">
+                                        {isAddModalOpen
+                                            ? (formData.parentId ? 'Add Subcategory' : 'Create Category')
+                                            : (formData.parentId ? 'Edit Subcategory' : 'Edit Category')}
+                                    </h2>
+                                    {formData.parentId && (
+                                        <p className="text-xs text-slate-400 font-medium mt-1">
+                                            Under: <span className="text-slate-600 font-semibold">{categories.find(c => c._id === formData.parentId)?.name || ''}</span>
+                                        </p>
+                                    )}
+                                </div>
+
                                 <div className="space-y-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Name</label>
-                                        <input 
+                                        <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Title</label>
+                                        <input
                                             required
-                                            type="text" 
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm font-bold focus:bg-white focus:border-primary outline-none transition-all"
+                                            type="text"
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm font-medium focus:bg-white focus:border-primary outline-none transition-all"
                                             value={formData.name}
                                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                                         />
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Description</label>
-                                        <textarea 
+                                        <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Description</label>
+                                        <textarea
                                             required
                                             rows={3}
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm font-bold focus:bg-white focus:border-primary outline-none transition-all resize-none"
+                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm font-medium focus:bg-white focus:border-primary outline-none transition-all resize-none"
                                             value={formData.description}
                                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                                         />
                                     </div>
 
+                                    {/* Top-level-only options: visibility + topics. Hidden for subcategories. */}
                                     {!formData.parentId && (
-                                        <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                            <input 
-                                                type="checkbox" 
-                                                id="isVisibleOnHome"
-                                                className="w-5 h-5 rounded-lg text-primary border-slate-200"
-                                                checked={formData.isVisibleOnHome}
-                                                onChange={e => setFormData({ ...formData, isVisibleOnHome: e.target.checked })}
-                                            />
-                                            <label htmlFor="isVisibleOnHome" className="text-sm font-bold text-slate-700 cursor-pointer">Visible on Homepage</label>
-                                        </div>
-                                    )}
+                                        <>
+                                            <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <input
+                                                    type="checkbox"
+                                                    id="isVisibleOnHome"
+                                                    className="w-5 h-5 rounded-lg text-primary border-slate-200"
+                                                    checked={formData.isVisibleOnHome}
+                                                    onChange={e => setFormData({ ...formData, isVisibleOnHome: e.target.checked })}
+                                                />
+                                                <label htmlFor="isVisibleOnHome" className="text-sm font-semibold text-slate-700 cursor-pointer">Visible on Homepage</label>
+                                            </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Topics (comma separated)</label>
-                                        <input 
-                                            type="text" 
-                                            placeholder="e.g. React, Node.js, Web Design"
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm font-bold focus:bg-white focus:border-primary outline-none transition-all"
-                                            value={formData.topics}
-                                            onChange={e => setFormData({ ...formData, topics: e.target.value })}
-                                        />
-                                    </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Topics (comma separated)</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. React, Node.js, Web Design"
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-5 text-sm font-medium focus:bg-white focus:border-primary outline-none transition-all"
+                                                    value={formData.topics}
+                                                    onChange={e => setFormData({ ...formData, topics: e.target.value })}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className="flex gap-3 pt-4">
                                     <button 
                                         type="button"
                                         onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}
-                                        className="flex-1 py-4 text-slate-500 font-black text-xs uppercase tracking-widest hover:bg-slate-50 rounded-2xl transition-all"
+                                        className="flex-1 py-4 text-slate-500 font-semibold text-xs uppercase tracking-widest hover:bg-slate-50 rounded-2xl transition-all"
                                     >
                                         Cancel
                                     </button>
                                     <button 
                                         type="submit"
-                                        className="flex-2 px-10 bg-[#071739] text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-black shadow-xl shadow-[#071739]/20 transition-all"
+                                        className="flex-2 px-10 bg-primary text-white font-semibold text-xs uppercase tracking-widest rounded-2xl hover:bg-black shadow-xl shadow-primary/20 transition-all"
                                     >
                                         {isAddModalOpen ? 'Create' : 'Save Changes'}
                                     </button>

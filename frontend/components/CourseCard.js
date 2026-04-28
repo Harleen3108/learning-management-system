@@ -83,7 +83,7 @@ export default function CourseCard({ course }) {
         </div>
 
         <div className="mt-auto flex items-center gap-2 pt-4 border-t border-slate-50">
-          <span className="text-lg font-bold text-slate-900">${course.price || '199.00'}</span>
+          <span className="text-lg font-semibold text-slate-900">${course.price || '199.00'}</span>
           <span className="text-sm text-slate-400 font-light line-through">${originalPrice}</span>
         </div>
       </div>
