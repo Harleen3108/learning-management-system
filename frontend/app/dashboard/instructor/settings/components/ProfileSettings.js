@@ -64,8 +64,8 @@ export default function ProfileSettings({ data, setData }) {
         <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
             <Script src="https://upload-widget.cloudinary.com/global/all.js" strategy="afterInteractive" />
             <div>
-                <h2 className="text-2xl font-bold text-slate-900">Profile Settings</h2>
-                <p className="text-sm font-medium text-slate-500 mt-1">Manage your public instructor identity.</p>
+                <h2 className="text-2xl font-semibold text-slate-900">Profile Settings</h2>
+                <p className="text-sm text-slate-500 mt-1">Manage your public instructor identity.</p>
             </div>
 
             <div className="flex items-center gap-8">
@@ -83,55 +83,55 @@ export default function ProfileSettings({ data, setData }) {
                     </button>
                 </div>
                 <div>
-                    <h3 className="text-sm font-bold text-slate-900">Profile Picture</h3>
-                    <p className="text-xs font-medium text-slate-400 max-w-xs mt-1">Upload a professional headshot to build trust with your students.</p>
+                    <h3 className="text-sm font-medium text-slate-900">Profile Picture</h3>
+                    <p className="text-xs text-slate-400 max-w-xs mt-1">Upload a professional headshot to build trust with your students.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Full Name</label>
+                    <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1">Full Name</label>
                     <input 
                         type="text"
                         value={data.user.name}
                         onChange={e => setData(prev => ({ ...prev, user: { ...prev.user, name: e.target.value } }))}
-                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
+                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
                     />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Display Name (Optional)</label>
+                    <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1">Display Name (Optional)</label>
                     <input 
                         type="text"
                         value={data.settings.profile.displayName}
                         onChange={e => setData(prev => ({ ...prev, settings: { ...prev.settings, profile: { ...prev.settings.profile, displayName: e.target.value } } }))}
-                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
+                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
                     />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Professional Headline</label>
+                    <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1">Professional Headline</label>
                     <input 
                         type="text"
                         placeholder="e.g. Senior Software Engineer at TechCorp"
                         value={data.settings.profile.headline}
                         onChange={e => setData(prev => ({ ...prev, settings: { ...prev.settings, profile: { ...prev.settings.profile, headline: e.target.value } } }))}
-                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
+                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
                     />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Bio / About Me</label>
+                    <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1">Bio / About Me</label>
                     <textarea 
                         rows={4}
                         value={data.user.instructorBio}
                         onChange={e => setData(prev => ({ ...prev, user: { ...prev.user, instructorBio: e.target.value } }))}
-                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
+                        className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
                     />
                 </div>
                 
                 <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Teaching Expertise / Skills</label>
+                    <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1">Teaching Expertise / Skills</label>
                     <div className="w-full bg-slate-50 border border-slate-100 p-3 rounded-2xl flex flex-wrap gap-2 items-center focus-within:ring-4 focus-within:ring-blue-600/5 transition-all">
                         {data.settings.profile.expertise.map(item => (
-                            <span key={item} className="flex items-center gap-1 bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 shadow-sm">
+                            <span key={item} className="flex items-center gap-1 bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 shadow-sm">
                                 {item}
                                 <button onClick={() => removeExpertise(item)} className="text-slate-400 hover:text-rose-500"><X size={14}/></button>
                             </span>
@@ -140,7 +140,7 @@ export default function ProfileSettings({ data, setData }) {
                             type="text"
                             placeholder="Type a skill and press Enter..."
                             onKeyDown={addExpertise}
-                            className="flex-1 bg-transparent outline-none text-sm font-bold min-w-[200px] p-2"
+                            className="flex-1 bg-transparent outline-none text-sm min-w-[200px] p-2"
                         />
                     </div>
                 </div>
@@ -149,7 +149,7 @@ export default function ProfileSettings({ data, setData }) {
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-50">
                     {['website', 'linkedin', 'twitter', 'youtube'].map(network => (
                         <div key={network} className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{network}</label>
+                            <label className="text-[10px] font-medium text-slate-400 uppercase tracking-widest px-1">{network}</label>
                             <input 
                                 type="url"
                                 placeholder={`https://${network}.com/...`}
@@ -161,7 +161,7 @@ export default function ProfileSettings({ data, setData }) {
                                         socialLinks: { ...prev.user.socialLinks, [network]: e.target.value } 
                                     } 
                                 }))}
-                                className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
+                                className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm focus:ring-4 focus:ring-blue-600/5 outline-none transition-all"
                             />
                         </div>
                     ))}

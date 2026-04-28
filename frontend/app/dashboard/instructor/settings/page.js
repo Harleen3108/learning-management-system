@@ -154,8 +154,8 @@ export default function InstructorSettingsPage() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Settings Control Center</h1>
-                        <p className="text-slate-500 font-medium mt-1">Manage your account preferences, payouts, and integrations.</p>
+                        <h1 className="text-4xl font-semibold text-slate-900 tracking-tight">Settings Control Center</h1>
+                        <p className="text-slate-500 mt-1">Manage your account preferences, payouts, and integrations.</p>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -163,7 +163,7 @@ export default function InstructorSettingsPage() {
                             {showSuccess && (
                                 <motion.div 
                                     initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
-                                    className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-3 rounded-2xl border border-emerald-100 font-bold text-xs uppercase tracking-widest"
+                                    className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-3 rounded-2xl border border-emerald-100 font-medium text-xs uppercase tracking-widest"
                                 >
                                     <CheckCircle2 size={16} /> Saved
                                 </motion.div>
@@ -172,7 +172,7 @@ export default function InstructorSettingsPage() {
                         <button 
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center gap-2 bg-[#071739] text-white px-8 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
+                            className="flex items-center gap-2 bg-[#071739] text-white px-8 py-4 rounded-[1.5rem] font-medium text-xs uppercase tracking-widest hover:opacity-90 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
                         >
                             {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                             {saving ? 'Saving...' : 'Save Changes'}
@@ -198,8 +198,8 @@ export default function InstructorSettingsPage() {
                                                 <Icon size={20} />
                                             </div>
                                             <div>
-                                                <p className={`font-bold text-sm ${isActive ? 'text-white' : 'text-slate-900'}`}>{section.label}</p>
-                                                <p className={`text-[10px] uppercase tracking-widest font-black mt-0.5 ${isActive ? 'text-white/60' : 'text-slate-400'}`}>{section.desc}</p>
+                                                <p className={`font-medium text-sm ${isActive ? 'text-white' : 'text-slate-900'}`}>{section.label}</p>
+                                                <p className={`text-[10px] uppercase tracking-widest mt-0.5 ${isActive ? 'text-white/60' : 'text-slate-400'}`}>{section.desc}</p>
                                             </div>
                                         </button>
                                     );

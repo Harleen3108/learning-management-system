@@ -29,8 +29,8 @@ export default function NotificationSettings({ data, setData }) {
     return (
         <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
             <div>
-                <h2 className="text-2xl font-bold text-slate-900">Notification Settings</h2>
-                <p className="text-sm font-medium text-slate-500 mt-1">Control which email alerts you receive.</p>
+                <h2 className="text-2xl font-semibold text-slate-900">Notification Settings</h2>
+                <p className="text-sm text-slate-500 mt-1">Control which email alerts you receive.</p>
             </div>
 
             <div className="space-y-4">
@@ -39,8 +39,8 @@ export default function NotificationSettings({ data, setData }) {
                     return (
                         <div key={alert.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
                             <div>
-                                <h4 className="text-sm font-bold text-slate-900">{alert.label}</h4>
-                                <p className="text-xs font-medium text-slate-400 mt-1">{alert.desc}</p>
+                                <h4 className="text-sm font-medium text-slate-900">{alert.label}</h4>
+                                <p className="text-xs text-slate-400 mt-1">{alert.desc}</p>
                             </div>
                             <button 
                                 onClick={() => toggleAlert(alert.id)}
