@@ -18,7 +18,8 @@
     "react-dom": "^18.2.0",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^1.14.0",
-    "zustand": "^4.3.8"
+    "zustand": "^4.3.8",
+    "@react-oauth/google": "^0.12.1"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.14",

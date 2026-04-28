@@ -21,14 +21,18 @@ export const metadata = {
   description: 'A comprehensive full-stack LMS platform',
 }
 
+import GoogleAuthProviderWrapper from '@/components/GoogleAuthProvider'
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${inter.variable} ${dmSans.variable} font-sans`}>
-        <Suspense fallback={null}>
-            <ProgressBar />
-        </Suspense>
-        {children}
+        <GoogleAuthProviderWrapper>
+          <Suspense fallback={null}>
+              <ProgressBar />
+          </Suspense>
+          {children}
+        </GoogleAuthProviderWrapper>
       </body>
     </html>
   )

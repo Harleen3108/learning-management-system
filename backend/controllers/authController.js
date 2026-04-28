@@ -1,8 +1,56 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { linkParent } = require('../utils/parentLinker');
+const axios = require('axios');
 
 const { sendParentNotification } = require('../services/notificationService');
+
+// @desc    Google Auth
+// @route   POST /api/v1/auth/google
+// @access  Public
+exports.googleAuth = async (req, res, next) => {
+    try {
+        const { access_token, role } = req.body;
+
+        if (!access_token) {
+            return res.status(400).json({ success: false, message: 'Google access token is required' });
+        }
+
+        // Fetch user info from Google
+        const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${access_token}` }
+        });
+
+        const { email, name, picture } = response.data;
+
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Failed to retrieve email from Google' });
+        }
+
+        // Check if user exists
+        let user = await User.findOne({ email }).select('+password');
+
+        if (!user) {
+            // Create user
+            const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+            user = await User.create({
+                name,
+                email,
+                password: randomPassword,
+                role: role || 'student',
+                profilePhoto: picture || 'no-photo.jpg'
+            });
+        }
+
+        if (!user.isActive) {
+            return res.status(401).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
+        }
+
+        sendTokenResponse(user, 200, res);
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.response?.data?.error_description || err.message });
+    }
+};
 
 // @desc    Register user
 // @route   POST /api/v1/auth/register
