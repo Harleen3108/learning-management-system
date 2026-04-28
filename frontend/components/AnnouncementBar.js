@@ -43,8 +43,8 @@ export default function AnnouncementBar({ isVisible, setIsVisible }) {
               </p>
             </div>
             
-            <Link 
-              href="/courses" 
+            <Link
+              href="/explore"
               className="text-xs font-bold uppercase tracking-widest bg-white text-slate-900 px-4 py-1.5 rounded hover:bg-[#bef264] transition-colors"
             >
               Shop Now

@@ -12,7 +12,7 @@ const testimonials = [
     role: "Google AI Essentials graduate",
     avatar: "https://i.pravatar.cc/150?u=cris",
     linkText: "View AI courses",
-    linkHref: "/courses?category=AI"
+    linkHref: "/explore?q=AI"
   },
   {
     id: 2,
@@ -21,7 +21,7 @@ const testimonials = [
     role: "Technical Co-Founder, CTO at Dimensional",
     avatar: "https://i.pravatar.cc/150?u=alvin",
     linkText: "View this iOS & Swift course",
-    linkHref: "/courses?category=Development"
+    linkHref: "/explore?q=Development"
   },
   {
     id: 3,
@@ -30,7 +30,7 @@ const testimonials = [
     role: "Partner Account Manager at Amazon Web Services",
     avatar: "https://i.pravatar.cc/150?u=william",
     linkText: "View this AWS course",
-    linkHref: "/courses?category=Cloud"
+    linkHref: "/explore?q=Cloud"
   },
   {
     id: 4,
@@ -39,7 +39,7 @@ const testimonials = [
     role: "Google AI Professional Certificate graduate",
     avatar: "https://i.pravatar.cc/150?u=ben",
     linkText: "View Google AI Certificates",
-    linkHref: "/courses?category=AI"
+    linkHref: "/explore?q=AI"
   },
   {
     id: 5,
@@ -48,7 +48,7 @@ const testimonials = [
     role: "Project Manager at TechCorp",
     avatar: "https://i.pravatar.cc/150?u=sarah",
     linkText: "View Management courses",
-    linkHref: "/courses?category=Business"
+    linkHref: "/explore?q=Business"
   }
 ];
 
@@ -151,8 +151,8 @@ export default function TestimonialSection() {
         </div>
 
         <div className="mt-8">
-          <Link href="/stories" className="text-primary font-bold text-sm flex items-center gap-2 group">
-            View all stories 
+          <Link href="/explore" className="text-primary font-bold text-sm flex items-center gap-2 group">
+            View all stories
             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
