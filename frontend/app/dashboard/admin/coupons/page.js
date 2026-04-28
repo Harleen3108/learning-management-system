@@ -234,7 +234,6 @@ export default function CouponManagement() {
                                         />
                                     </div>
                                 </div>
-                                </div>
 
                                 <div className="flex gap-4 pt-4">
                                     <button 
