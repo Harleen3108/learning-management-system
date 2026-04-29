@@ -132,25 +132,33 @@ export default function ExplorePage() {
                                 {currentCategory.description || `${currentCategory.name} courses teach machine simulation of human intelligence processes. Exploring ${currentCategory.name} is crucial for building smart systems and applications and is important for developers, researchers, and anyone interested in cutting-edge technology.`}
                             </p>
                             
-                            <div className="flex flex-wrap gap-8 items-center pt-4">
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Number of learners</p>
-                                    <p className="text-xl font-black text-slate-900">5,859,434</p>
-                                </div>
-                                <div className="w-px h-10 bg-slate-100 hidden sm:block" />
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Number of courses</p>
-                                    <p className="text-xl font-black text-slate-900">{courses.length.toLocaleString()}</p>
-                                </div>
-                                <div className="w-px h-10 bg-slate-100 hidden sm:block" />
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Average course rating</p>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-xl font-black text-slate-900">4.5</p>
-                                        <Star size={18} fill="#F59E0B" className="text-orange-500" />
+                            {(() => {
+                                // Compute real stats from the courses array
+                                const rated = courses.filter(c => Number(c.averageRating) > 0);
+                                const avg = rated.length
+                                    ? rated.reduce((s, c) => s + Number(c.averageRating), 0) / rated.length
+                                    : 0;
+                                return (
+                                    <div className="flex flex-wrap gap-8 items-center pt-4">
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Number of courses</p>
+                                            <p className="text-xl font-black text-slate-900">{courses.length.toLocaleString()}</p>
+                                        </div>
+                                        {avg > 0 && (
+                                            <>
+                                                <div className="w-px h-10 bg-slate-100 hidden sm:block" />
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Average course rating</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-xl font-black text-slate-900">{avg.toFixed(1)}</p>
+                                                        <Star size={18} fill="#F59E0B" className="text-orange-500" />
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
-                                </div>
-                            </div>
+                                );
+                            })()}
 
                             <div className="flex flex-wrap items-center gap-4 pt-6">
                                 <span className="text-sm font-bold text-slate-400">Related:</span>

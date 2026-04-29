@@ -296,6 +296,13 @@ exports.getCoursesAdmin = async (req, res, next) => {
 
         const courses = await Course.find(query)
             .populate('instructor', 'name email')
+            .populate('category', 'name')
+            .populate('subcategory', 'name')
+            .populate({
+                path: 'modules',
+                select: 'title',
+                populate: { path: 'lessons', select: 'title' }
+            })
             .sort('-createdAt')
             .lean();
 

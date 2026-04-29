@@ -847,10 +847,14 @@ export default function LearningPage({ params, onBack }) {
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Students</p>
                           </div>
                           <div className="text-center p-3 bg-slate-50 rounded-xl">
-                            <p className="text-base font-semibold text-slate-900 flex items-center justify-center gap-1">
-                              <Star size={12} className="text-orange-400 fill-orange-400" />
-                              {stats?.averageRating || '4.8'}
-                            </p>
+                            {stats?.averageRating > 0 ? (
+                              <p className="text-base font-semibold text-slate-900 flex items-center justify-center gap-1">
+                                <Star size={12} className="text-orange-400 fill-orange-400" />
+                                {Number(stats.averageRating).toFixed(1)}
+                              </p>
+                            ) : (
+                              <p className="text-base font-semibold text-slate-400">—</p>
+                            )}
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rating</p>
                           </div>
                           <div className="text-center p-3 bg-slate-50 rounded-xl">

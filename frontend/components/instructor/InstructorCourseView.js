@@ -127,8 +127,12 @@ export default function InstructorCourseView({ courseId }) {
                                     )}>
                                         {course.status}
                                     </div>
-                                    <span className="text-[#f69c08] font-semibold text-xs">{course.averageRating || '4.6'} ★</span>
-                                    <span className="text-white/50 text-xs font-medium">({reviews.length || 21} ratings)</span>
+                                    {reviews.length > 0 && (
+                                        <>
+                                            <span className="text-[#f69c08] font-semibold text-xs">{Number(course.averageRating || 0).toFixed(1)} ★</span>
+                                            <span className="text-white/50 text-xs font-medium">({reviews.length} {reviews.length === 1 ? 'rating' : 'ratings'})</span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -176,14 +180,29 @@ export default function InstructorCourseView({ courseId }) {
                             <div className="flex items-center gap-1.5 bg-blue-50 text-[#071739] px-2 py-1 rounded-sm font-semibold text-[10px] uppercase">
                                 {course.difficulty || 'All Levels'}
                             </div>
-                            <div className="flex items-center gap-1.5 text-[#f69c08] font-semibold">
-                                <span>{course.averageRating || '4.6'}</span>
-                                <div className="flex">{[...Array(5)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}</div>
-                            </div>
-                            <span className="text-blue-100 underline underline-offset-4 font-medium text-xs">
-                                ({reviews.length?.toLocaleString() || '19,678'} ratings)
-                            </span>
-                            <span className="font-medium text-white/70 text-xs">{analytics?.totalEnrolled?.toLocaleString() || '0'} students</span>
+                            {reviews.length > 0 ? (
+                                <>
+                                    <div className="flex items-center gap-1.5 text-[#f69c08] font-semibold">
+                                        <span>{Number(course.averageRating || 0).toFixed(1)}</span>
+                                        <div className="flex">
+                                          {[...Array(5)].map((_, i) => (
+                                            <Star
+                                              key={i}
+                                              size={12}
+                                              fill={i < Math.round(course.averageRating || 0) ? 'currentColor' : 'none'}
+                                              className={i < Math.round(course.averageRating || 0) ? 'text-[#f69c08]' : 'text-white/30'}
+                                            />
+                                          ))}
+                                        </div>
+                                    </div>
+                                    <span className="text-blue-100 underline underline-offset-4 font-medium text-xs">
+                                        ({reviews.length.toLocaleString()} {reviews.length === 1 ? 'rating' : 'ratings'})
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="text-white/60 text-xs font-medium italic">No ratings yet</span>
+                            )}
+                            <span className="font-medium text-white/70 text-xs">{(analytics?.totalEnrolled || 0).toLocaleString()} students</span>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-white/90">

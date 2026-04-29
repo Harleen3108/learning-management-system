@@ -291,12 +291,34 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                         <p className="text-xl text-slate-300 font-medium max-w-2xl">{course.subtitle || course.tagline}</p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 pt-2">
-                        <div className="flex items-center gap-1.5 bg-[#bef264] text-[#3d3c0a] px-2 py-1 rounded-sm font-semibold text-[10px] uppercase">Bestseller</div>
-                        <div className="flex items-center gap-1.5 bg-blue-50 text-[#071739] px-2 py-1 rounded-sm font-semibold text-[10px] uppercase">Role Play</div>
+                    {/* Always show 5-star bar; the fill is driven by the real averageRating
+                        so the row reads as "0.0 ☆☆☆☆☆ (no ratings yet)" until reviews come in. */}
+                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                        {course.averageRating >= 4.5 && (course.totalRatings || 0) >= 10 && (
+                            <div className="flex items-center gap-1.5 bg-[#bef264] text-[#3d3c0a] px-2 py-1 rounded-sm font-semibold text-[10px] uppercase">
+                              Bestseller
+                            </div>
+                        )}
                         <div className="flex items-center gap-1.5 text-amber-400 font-semibold">
-                            <span>4.8</span>
-                            <div className="flex">{[...Array(5)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}</div>
+                            <span>{Number(course.averageRating || 0).toFixed(1)}</span>
+                            <div className="flex">
+                              {[...Array(5)].map((_, i) => {
+                                const filled = i < Math.round(course.averageRating || 0);
+                                return (
+                                  <Star
+                                    key={i}
+                                    size={12}
+                                    fill={filled ? 'currentColor' : 'none'}
+                                    className={filled ? 'text-amber-400' : 'text-white/30'}
+                                  />
+                                );
+                              })}
+                            </div>
+                            <span className="text-white/60 font-medium text-xs">
+                              {(course.totalRatings || 0) > 0
+                                ? `(${course.totalRatings} ${course.totalRatings === 1 ? 'rating' : 'ratings'})`
+                                : '(no ratings yet)'}
+                            </span>
                         </div>
                     </div>
 

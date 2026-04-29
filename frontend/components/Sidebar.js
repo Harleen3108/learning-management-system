@@ -32,7 +32,8 @@ import {
   ChevronDown as ChevronDownIcon,
   HelpCircle,
   FileText,
-  Megaphone
+  Megaphone,
+  Mail
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -73,6 +74,8 @@ export default function Sidebar({ isOpen = false, onClose = () => {} } = {}) {
             { icon: CreditCard, label: 'Transactions', href: '/dashboard/admin/transactions' },
             { icon: Ticket, label: 'Coupons', href: '/dashboard/admin/coupons' },
             { icon: Receipt, label: 'Payment Logs', href: '/dashboard/admin/payments/logs' },
+            { icon: Mail, label: 'Subscriptions', href: '/dashboard/admin/subscriptions' },
+            { icon: Megaphone, label: 'Announcements', href: '/dashboard/admin/announcements' },
         ] : [
             // Instructor Role
             { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/instructor' },

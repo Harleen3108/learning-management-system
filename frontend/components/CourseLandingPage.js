@@ -21,7 +21,6 @@ import {
     Check,
     Lock,
     Unlock,
-    Heart,
     Baby,
     Clock
 } from 'lucide-react';
@@ -29,23 +28,94 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { clsx } from 'clsx';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export default function CourseLandingPage({ courseId, isEnrolled, onStartLearning }) {
+    const router = useRouter();
     const [course, setCourse] = useState(null);
     const [loading, setLoading] = useState(true);
     const [expandedModules, setExpandedModules] = useState({});
     const [scrolled, setScrolled] = useState(false);
     const [purchaseMode, setPurchaseMode] = useState('subscription');
+
+    // Coupon state — validated against /coupons/validate when "Apply" is pressed.
     const [couponCode, setCouponCode] = useState('');
-    const [instructorCourses, setInstructorCourses] = useState([]);
+    const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discountType, discountValue }
+    const [couponBusy, setCouponBusy] = useState(false);
+    const [couponError, setCouponError] = useState('');
+
+    const [shareCopied, setShareCopied] = useState(false);
+
+    const [relatedCourses, setInstructorCourses] = useState([]);
     const [reviews, setReviews] = useState([]);
     const { user, isLoading: authLoading } = useAuthStore();
     const [showFullDescription, setShowFullDescription] = useState(false);
     const { items, addToCart } = useCartStore();
     const isInCart = items.some(item => item._id === courseId);
     const [enrollLoading, setEnrollLoading] = useState(false);
+
+    // Use the discounted price when set & lower than the list price
+    const list = Number(course?.price) || 0;
+    const disc = Number(course?.discountPrice) || 0;
+    const payable = disc > 0 && disc < list ? disc : list;
+
+    const handleAddToCart = () => {
+        if (!course) return;
+        if (isInCart) {
+            router.push('/dashboard/cart');
+        } else {
+            addToCart({ ...course, payable });
+        }
+    };
+
+    const handleBuyNow = () => {
+        if (!course) return;
+        if (!isInCart) addToCart({ ...course, payable });
+        router.push('/dashboard/cart');
+    };
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setCouponBusy(true);
+        setCouponError('');
+        try {
+            const res = await api.post('/coupons/validate', { code: couponCode.trim() });
+            if (res.data?.success) {
+                setAppliedCoupon(res.data.data);
+                setCouponCode('');
+            } else {
+                setCouponError(res.data?.message || 'Invalid coupon');
+            }
+        } catch (err) {
+            setCouponError(err.response?.data?.message || 'Could not apply coupon');
+        } finally {
+            setCouponBusy(false);
+        }
+    };
+
+    const handleShare = async () => {
+        const url = typeof window !== 'undefined' ? window.location.href : '';
+        const title = course?.title || 'EduFlow course';
+        try {
+            if (navigator.share) {
+                await navigator.share({ title, url });
+            } else {
+                await navigator.clipboard.writeText(url);
+                setShareCopied(true);
+                setTimeout(() => setShareCopied(false), 1800);
+            }
+        } catch (err) { /* user dismissed or no clipboard */ }
+    };
+
+    // Computed coupon discount applied to the displayed price
+    const couponDiscount = appliedCoupon
+        ? (appliedCoupon.discountType === 'percentage'
+            ? Math.round((payable * appliedCoupon.discountValue) / 100)
+            : Math.min(payable, Math.round(appliedCoupon.discountValue)))
+        : 0;
+    const finalPrice = Math.max(0, payable - couponDiscount);
 
     const handleFreeEnroll = async () => {
         setEnrollLoading(true);
@@ -72,10 +142,19 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                     setPurchaseMode('individual');
                 }
                 
-                // Fetch more courses by instructor
-                if (courseData.instructor?._id) {
-                    const instRes = await api.get(`/courses?instructor=${courseData.instructor._id}&limit=3`);
-                    setInstructorCourses(instRes.data.data.filter(c => c._id !== courseId));
+                // Fetch more courses in the same category (fall back to subcategory if available)
+                const catId = courseData.category?._id || courseData.category;
+                if (catId) {
+                    try {
+                        const relatedRes = await api.get(`/courses?category=${catId}&limit=6`);
+                        // Drop the current course, then keep the top 6
+                        const related = (relatedRes.data.data || [])
+                            .filter(c => c._id !== courseId)
+                            .slice(0, 6);
+                        setInstructorCourses(related);
+                    } catch (e) {
+                        console.warn('Failed to fetch related courses');
+                    }
                 }
 
                 // Fetch reviews
@@ -129,10 +208,18 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                             <div className="flex-1 min-w-0 mr-8">
                                 <h3 className="text-white font-semibold text-sm truncate">{course.title}</h3>
                                 <div className="flex items-center gap-3 mt-1">
-                                    <div className="flex items-center gap-1.5 bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold text-[8px] uppercase">Bestseller</div>
-                                    <span className="text-[#f69c08] font-semibold text-xs">{course.averageRating || '4.6'} ★</span>
-                                    <span className="text-white/50 text-xs font-medium">({reviews.length || 21} ratings)</span>
-                                    <span className="text-white/50 text-xs font-medium">338 students</span>
+                                    {course.averageRating >= 4.5 && reviews.length >= 10 && (
+                                        <div className="flex items-center gap-1.5 bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold text-[8px] uppercase">Bestseller</div>
+                                    )}
+                                    {reviews.length > 0 && (
+                                        <>
+                                            <span className="text-[#f69c08] font-semibold text-xs">{Number(course.averageRating || 0).toFixed(1)} ★</span>
+                                            <span className="text-white/50 text-xs font-medium">({reviews.length} {reviews.length === 1 ? 'rating' : 'ratings'})</span>
+                                        </>
+                                    )}
+                                    {course.enrolledCount > 0 && (
+                                        <span className="text-white/50 text-xs font-medium">{course.enrolledCount.toLocaleString()} students</span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -170,16 +257,34 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                         </p>
 
                         <div className="flex flex-wrap items-center gap-3 text-sm">
-                            <div className="flex items-center gap-1.5 bg-amber-100 text-amber-800 px-2 py-1 rounded-sm font-semibold text-[10px] uppercase">Bestseller</div>
-                            <div className="flex items-center gap-1.5 bg-blue-50 text-[#071739] px-2 py-1 rounded-sm font-semibold text-[10px] uppercase">Role Play</div>
-                            <div className="flex items-center gap-1.5 text-[#f69c08] font-semibold">
-                                <span>{course.averageRating || '4.6'}</span>
-                                <div className="flex">{[...Array(5)].map((_, i) => <Star key={i} size={12} fill="currentColor" />)}</div>
-                            </div>
-                            <Link href="#reviews" className="text-blue-100 underline underline-offset-4 font-medium text-xs">
-                                ({reviews.length?.toLocaleString() || '19,678'} ratings)
-                            </Link>
-                            <span className="font-medium text-white/70 text-xs">{course.enrolledCount?.toLocaleString() || '132,760'} students</span>
+                            {course.averageRating >= 4.5 && reviews.length >= 10 && (
+                                <div className="flex items-center gap-1.5 bg-amber-100 text-amber-800 px-2 py-1 rounded-sm font-semibold text-[10px] uppercase">Bestseller</div>
+                            )}
+                            {reviews.length > 0 ? (
+                                <>
+                                    <div className="flex items-center gap-1.5 text-[#f69c08] font-semibold">
+                                        <span>{Number(course.averageRating || 0).toFixed(1)}</span>
+                                        <div className="flex">
+                                          {[...Array(5)].map((_, i) => (
+                                            <Star
+                                              key={i}
+                                              size={12}
+                                              fill={i < Math.round(course.averageRating || 0) ? 'currentColor' : 'none'}
+                                              className={i < Math.round(course.averageRating || 0) ? 'text-[#f69c08]' : 'text-white/30'}
+                                            />
+                                          ))}
+                                        </div>
+                                    </div>
+                                    <Link href="#reviews" className="text-blue-100 underline underline-offset-4 font-medium text-xs">
+                                        ({reviews.length.toLocaleString()} {reviews.length === 1 ? 'rating' : 'ratings'})
+                                    </Link>
+                                </>
+                            ) : (
+                                <span className="text-white/60 text-xs font-medium italic">Be the first to review this course</span>
+                            )}
+                            {course.enrolledCount > 0 && (
+                                <span className="font-medium text-white/70 text-xs">{course.enrolledCount.toLocaleString()} students</span>
+                            )}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-white/90">
@@ -231,8 +336,8 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                                     {enrollLoading ? 'Enrolling...' : 'Enroll for Free'}
                                 </button>
                             ) : (
-                                <button 
-                                    onClick={() => isInCart ? router.push('/dashboard/cart') : addToCart(course)}
+                                <button
+                                    onClick={handleAddToCart}
                                     className={clsx(
                                         "w-full py-4 font-semibold text-sm rounded-sm shadow-xl active:scale-95 transition-all",
                                         isInCart ? "bg-white text-slate-900 border border-slate-200" : "bg-blue-600 text-white"
@@ -241,14 +346,12 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                                     {isInCart ? 'Go to cart' : 'Add to cart'}
                                 </button>
                             )}
-                            <div className="grid grid-cols-2 gap-3">
-                                <button className="py-3 border border-white/20 text-white font-semibold text-xs uppercase rounded-sm hover:bg-white/5 transition-all">
-                                    Share
-                                </button>
-                                <button className="py-3 border border-white/20 text-white font-semibold text-xs uppercase rounded-sm hover:bg-white/5 transition-all">
-                                    Gift this course
-                                </button>
-                            </div>
+                            <button
+                                onClick={handleShare}
+                                className="w-full py-3 border border-white/20 text-white font-semibold text-xs uppercase rounded-sm hover:bg-white/5 transition-all"
+                            >
+                                {shareCopied ? 'Link copied!' : 'Share course'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -374,8 +477,8 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                                                         </button>
                                                     ) : (
                                                         <>
-                                                            <button 
-                                                                onClick={() => isInCart ? router.push('/dashboard/cart') : addToCart(course)}
+                                                            <button
+                                                                onClick={handleAddToCart}
                                                                 className={clsx(
                                                                     "w-full py-4 font-semibold text-sm transition-all rounded-sm",
                                                                     isInCart ? "bg-white text-slate-900 border border-slate-900" : "border border-slate-900 text-slate-900 hover:bg-slate-50"
@@ -383,9 +486,17 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                                                             >
                                                                 {isInCart ? 'Go to cart' : 'Add to cart'}
                                                             </button>
-                                                            <button className="w-full border border-slate-900 text-slate-900 py-4 font-semibold text-sm hover:bg-slate-50 transition-all rounded-sm">
+                                                            <button
+                                                                onClick={handleBuyNow}
+                                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 font-semibold text-sm transition-all rounded-sm shadow-lg shadow-blue-600/20"
+                                                            >
                                                                 Buy now
                                                             </button>
+                                                            {appliedCoupon && (
+                                                                <p className="text-[11px] font-medium text-emerald-600 text-center">
+                                                                    Coupon {appliedCoupon.code} will apply at checkout — final ₹{finalPrice}
+                                                                </p>
+                                                            )}
                                                         </>
                                                     )}
                                                 </div>
@@ -398,40 +509,64 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                     </div>
                 </div>
 
-                    {/* Common Actions */}
-                    <div className="p-6 grid grid-cols-2 gap-3 border-t border-slate-100">
-                        <button className="flex items-center justify-center gap-2 py-3 border border-slate-900 font-semibold text-xs hover:bg-slate-50 transition-all">
-                            <Heart size={16} /> Wishlist
-                        </button>
-                        <button className="flex items-center justify-center gap-2 py-3 border border-slate-900 font-semibold text-xs hover:bg-slate-50 transition-all">
-                            <Share2 size={16} /> Share
+                    {/* Share button — Wishlist removed per spec */}
+                    <div className="p-6 border-t border-slate-100">
+                        <button
+                            onClick={handleShare}
+                            className="w-full flex items-center justify-center gap-2 py-3 border border-slate-900 font-semibold text-xs hover:bg-slate-50 transition-all"
+                        >
+                            <Share2 size={16} /> {shareCopied ? 'Link copied!' : 'Share'}
                         </button>
                     </div>
-                        
+
                         <div className="p-6 space-y-3">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="font-semibold text-sm text-slate-900">Apply Coupon</span>
-                                <div className="flex items-center gap-2">
-                                    <Gift size={16} className="text-slate-400" />
-                                    <Share2 size={16} className="text-slate-400" />
+                                <Gift size={16} className="text-slate-400" />
+                            </div>
+
+                            {appliedCoupon ? (
+                                <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-sm flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs font-semibold text-emerald-900">{appliedCoupon.code} applied</p>
+                                        <p className="text-[10px] font-medium text-emerald-600">
+                                            {appliedCoupon.discountType === 'percentage'
+                                                ? `${appliedCoupon.discountValue}% off`
+                                                : `₹${appliedCoupon.discountValue} off`}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => { setAppliedCoupon(null); setCouponError(''); }}
+                                        className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded"
+                                        aria-label="Remove coupon"
+                                    >
+                                        <X size={14} />
+                                    </button>
                                 </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    placeholder="Enter Coupon"
-                                    className="flex-1 border border-slate-300 px-4 py-3 text-sm font-medium outline-none focus:border-slate-900 transition-colors"
-                                    value={couponCode}
-                                    onChange={(e) => setCouponCode(e.target.value)}
-                                />
-                                <button className="px-6 py-3 bg-blue-600 text-white font-semibold text-xs uppercase hover:bg-blue-700 transition-all">
-                                    Apply
-                                </button>
-                            </div>
-                            <div className="p-3 bg-blue-50 border border-blue-100 text-blue-600 font-medium text-xs flex items-center justify-between">
-                                <span>UDEAFFHP22025 applied!</span>
-                                <button onClick={() => setCouponCode('')}><X size={14} /></button>
-                            </div>
+                            ) : (
+                                <>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter Coupon"
+                                            className="flex-1 border border-slate-300 px-4 py-3 text-sm font-medium outline-none focus:border-slate-900 transition-colors uppercase tracking-wider"
+                                            value={couponCode}
+                                            onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleApplyCoupon(); }}
+                                        />
+                                        <button
+                                            onClick={handleApplyCoupon}
+                                            disabled={!couponCode.trim() || couponBusy}
+                                            className="px-6 py-3 bg-blue-600 text-white font-semibold text-xs uppercase hover:bg-blue-700 transition-all disabled:opacity-50"
+                                        >
+                                            {couponBusy ? '…' : 'Apply'}
+                                        </button>
+                                    </div>
+                                    {couponError && (
+                                        <p className="text-[11px] font-medium text-rose-500">{couponError}</p>
+                                    )}
+                                </>
+                            )}
                         </div>
                     </div>
                 </aside>
@@ -679,29 +814,37 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                             
                             <div className="flex items-start gap-8">
                                 <div className="w-32 h-32 rounded-full overflow-hidden shrink-0 border-4 border-slate-50 shadow-sm">
-                                    <img 
-                                        src={course.instructor?.profilePhoto === 'no-photo.jpg' ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor?.name}` : course.instructor?.profilePhoto} 
-                                        alt="Instructor" 
+                                    <img
+                                        src={course.instructor?.profilePhoto === 'no-photo.jpg' ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor?.name}` : course.instructor?.profilePhoto}
+                                        alt="Instructor"
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
                                 <div className="space-y-3 text-sm font-semibold text-slate-700">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-slate-100 rounded-lg"><Star size={18} fill="currentColor" className="text-slate-900" /></div>
-                                        <span>4.5 Instructor Rating</span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-slate-100 rounded-lg"><Trophy size={18} className="text-slate-900" /></div>
-                                        <span>101,536 Reviews</span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-slate-100 rounded-lg"><Users size={18} className="text-slate-900" /></div>
-                                        <span>344,815 Students</span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-slate-100 rounded-lg"><Play size={18} className="text-slate-900" /></div>
-                                        <span>{course.instructor?.totalCourses || '87'} Courses</span>
-                                    </div>
+                                    {course.instructor?.averageRating > 0 && (
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 bg-slate-100 rounded-lg"><Star size={18} fill="currentColor" className="text-slate-900" /></div>
+                                            <span>{Number(course.instructor.averageRating).toFixed(1)} Instructor Rating</span>
+                                        </div>
+                                    )}
+                                    {course.instructor?.totalReviews > 0 && (
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 bg-slate-100 rounded-lg"><Trophy size={18} className="text-slate-900" /></div>
+                                            <span>{course.instructor.totalReviews.toLocaleString()} {course.instructor.totalReviews === 1 ? 'Review' : 'Reviews'}</span>
+                                        </div>
+                                    )}
+                                    {course.instructor?.totalStudents > 0 && (
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 bg-slate-100 rounded-lg"><Users size={18} className="text-slate-900" /></div>
+                                            <span>{course.instructor.totalStudents.toLocaleString()} {course.instructor.totalStudents === 1 ? 'Student' : 'Students'}</span>
+                                        </div>
+                                    )}
+                                    {course.instructor?.totalCourses > 0 && (
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 bg-slate-100 rounded-lg"><Play size={18} className="text-slate-900" /></div>
+                                            <span>{course.instructor.totalCourses} {course.instructor.totalCourses === 1 ? 'Course' : 'Courses'}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -714,92 +857,144 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
 
                     {/* 8. Ratings & Reviews */}
                     <section id="reviews">
-                        <div className="flex items-center gap-3 mb-8">
-                            <Star size={24} fill="currentColor" className="text-amber-500" />
-                            <h2 className="text-2xl font-semibold tracking-tight">{course.averageRating || '4.6'} course rating • 21 ratings</h2>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12">
-                            {/* Rating Bars */}
+                        {reviews.length === 0 ? (
+                            <div className="flex items-center gap-3 mb-8">
+                                <Star size={24} className="text-slate-300" />
+                                <h2 className="text-2xl font-semibold tracking-tight text-slate-500">No ratings yet</h2>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3 mb-8">
+                                <Star size={24} fill="currentColor" className="text-amber-500" />
+                                <h2 className="text-2xl font-semibold tracking-tight">
+                                    {Number(course.averageRating || 0).toFixed(1)} course rating · {reviews.length} {reviews.length === 1 ? 'rating' : 'ratings'}
+                                </h2>
+                            </div>
+                        )}
+
+                        {reviews.length > 0 && (
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12">
+                            {/* Real rating distribution bars */}
                             <div className="md:col-span-4 space-y-3">
-                                {[5, 4, 3, 2, 1].map(stars => (
-                                    <div key={stars} className="flex items-center gap-4 group cursor-pointer">
-                                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                            <motion.div 
-                                                initial={{ width: 0 }}
-                                                animate={{ width: stars === 5 ? '70%' : stars === 4 ? '20%' : '5%' }}
-                                                className="h-full bg-slate-600 group-hover:bg-slate-900 transition-colors"
-                                            />
-                                        </div>
-                                        <div className="flex items-center gap-1.5 shrink-0 min-w-[80px]">
-                                            <div className="flex">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <Star key={i} size={10} fill={i < stars ? "currentColor" : "none"} className="text-amber-500" />
-                                                ))}
+                                {(() => {
+                                    const buckets = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+                                    reviews.forEach(r => { const k = Math.round(r.rating || 0); if (buckets[k] != null) buckets[k]++; });
+                                    return [5, 4, 3, 2, 1].map(stars => {
+                                        const pct = reviews.length > 0 ? Math.round((buckets[stars] / reviews.length) * 100) : 0;
+                                        return (
+                                            <div key={stars} className="flex items-center gap-4 group cursor-default">
+                                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${pct}%` }}
+                                                        className="h-full bg-slate-600 group-hover:bg-slate-900 transition-colors"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-1.5 shrink-0 min-w-[80px]">
+                                                    <div className="flex">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star key={i} size={10} fill={i < stars ? "currentColor" : "none"} className="text-amber-500" />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs font-medium text-slate-500">{pct}%</span>
+                                                </div>
                                             </div>
-                                            <span className="text-xs font-medium text-slate-400 group-hover:text-slate-900 transition-colors">
-                                                {stars === 5 ? '70%' : stars === 4 ? '20%' : '5%'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                        );
+                                    });
+                                })()}
                             </div>
 
                             <div className="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {reviews.length > 0 ? reviews.map((review, i) => (
+                                {reviews.map((review, i) => (
                                     <div key={i} className="space-y-4 py-8 border-t border-slate-100 first:border-t-0 md:first:border-t-0">
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center font-semibold text-sm">
-                                                {review.user?.name?.charAt(0) || 'U'}
+                                                {review.user?.name?.charAt(0) || review.student?.name?.charAt(0) || 'U'}
                                             </div>
                                             <div>
-                                                <h4 className="font-semibold text-sm">{review.user?.name || 'Anonymous User'}</h4>
+                                                <h4 className="font-semibold text-sm">{review.user?.name || review.student?.name || 'Anonymous'}</h4>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <div className="flex text-amber-500">
                                                         {[...Array(5)].map((_, j) => <Star key={j} size={10} fill={j < review.rating ? "currentColor" : "none"} />)}
                                                     </div>
-                                                    <span className="text-[10px] text-slate-400 font-medium uppercase">a week ago</span>
+                                                    <span className="text-[10px] text-slate-400 font-medium uppercase">
+                                                        {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
                                         <p className="text-sm text-slate-600 leading-relaxed font-medium line-clamp-3">
-                                            {review.comment || "Great course, learned a lot about management consulting."}
+                                            {review.comment || review.review}
                                         </p>
                                     </div>
-                                )) : (
-                                    <p className="text-slate-400 font-medium italic col-span-2">Be the first to review this course!</p>
-                                )}
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* 9. More Courses by Instructor */}
-                    {instructorCourses.length > 0 && (
-                        <section className="pt-12 border-t border-slate-100">
-                            <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-2xl font-semibold tracking-tight">More Courses by <span className="text-blue-600">{course.instructor?.name}</span></h2>
-                                <Link href={`/instructors/${course.instructor?._id}`} className="text-blue-600 font-semibold text-sm hover:underline">View profile</Link>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {instructorCourses.map(c => (
-                                    <Link key={c._id} href={`/dashboard/courses/${c._id}`} className="group space-y-3">
-                                        <div className="aspect-video rounded overflow-hidden border border-slate-100 shadow-sm">
-                                            <img src={c.thumbnail} className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500" />
-                                        </div>
-                                        <h4 className="font-semibold text-sm group-hover:text-blue-600 transition-all line-clamp-1">{c.title}</h4>
-                                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                                            <span>4.8</span>
-                                            <div className="flex text-amber-500">
-                                                <Star size={10} fill="currentColor" />
-                                            </div>
-                                            <span>(12k)</span>
-                                        </div>
-                                        <p className="font-semibold text-slate-900">₹{c.price}</p>
-                                    </Link>
                                 ))}
                             </div>
-                        </section>
-                    )}
+                          </div>
+                        )}
+                    </section>
+
+                    {/* 9. More Courses in this category */}
+                    {relatedCourses.length > 0 && (() => {
+                        const catId = course.category?._id || course.category;
+                        const catName = course.category?.name || (typeof course.category === 'string' ? '' : '');
+                        return (
+                            <section className="pt-12 border-t border-slate-100">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 className="text-2xl font-semibold tracking-tight">
+                                        More Courses {catName ? <>in <span className="text-blue-600">{catName}</span></> : 'you might like'}
+                                    </h2>
+                                    {catId && (
+                                        <Link
+                                            href={`/dashboard/explore?category=${catId}`}
+                                            className="text-blue-600 font-semibold text-sm hover:underline"
+                                        >
+                                            View all
+                                        </Link>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {relatedCourses.map(c => {
+                                        const list = Number(c.price) || 0;
+                                        const disc = Number(c.discountPrice) || 0;
+                                        const payable = disc > 0 && disc < list ? disc : list;
+                                        return (
+                                            <Link key={c._id} href={`/dashboard/courses/${c._id}`} className="group space-y-3">
+                                                <div className="aspect-video rounded overflow-hidden border border-slate-100 shadow-sm bg-slate-100">
+                                                    {c.thumbnail && c.thumbnail !== 'no-photo.jpg' && (
+                                                        <img src={c.thumbnail} alt={c.title} className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500" />
+                                                    )}
+                                                </div>
+                                                <h4 className="font-semibold text-sm group-hover:text-blue-600 transition-all line-clamp-2 min-h-[2.5rem]">{c.title}</h4>
+                                                <p className="text-[11px] text-slate-400 font-medium truncate">
+                                                    {c.instructor?.name || 'EduFlow Mentor'}
+                                                </p>
+                                                {c.averageRating > 0 && (
+                                                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                                        <span>{Number(c.averageRating).toFixed(1)}</span>
+                                                        <div className="flex text-amber-500">
+                                                            <Star size={10} fill="currentColor" />
+                                                        </div>
+                                                        {c.totalRatings > 0 && <span>({c.totalRatings.toLocaleString()})</span>}
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    {payable === 0 ? (
+                                                        <span className="font-semibold text-emerald-600">Free</span>
+                                                    ) : (
+                                                        <>
+                                                            <span className="font-semibold text-slate-900">₹{payable}</span>
+                                                            {disc > 0 && disc < list && (
+                                                                <span className="text-[11px] text-slate-400 font-medium line-through">₹{list}</span>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </section>
+                        );
+                    })()}
 
                 </div>
             </div>

@@ -288,15 +288,19 @@ function CourseCard({ course, payable, inCart, onAdd, onRemove }) {
               </p>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <Star size={11} className="text-[#A68868] fill-[#A68868]" />
-              <span className="text-xs font-semibold text-slate-700">
-                {course.averageRating ? course.averageRating.toFixed(1) : '4.5'}
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium">
-                ({course.reviewsCount || course.totalRatings || 0} reviews)
-              </span>
-            </div>
+            {course.averageRating > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <Star size={11} className="text-[#A68868] fill-[#A68868]" />
+                <span className="text-xs font-semibold text-slate-700">
+                  {Number(course.averageRating).toFixed(1)}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  ({course.reviewsCount || course.totalRatings || 0} {(course.reviewsCount || course.totalRatings) === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
+            ) : (
+              <span className="text-[11px] text-slate-400 font-medium italic">No ratings yet</span>
+            )}
 
             <div className="flex items-center gap-2">
               {payable === 0 ? (

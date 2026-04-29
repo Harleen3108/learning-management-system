@@ -11,8 +11,7 @@ import {
   TrendingUp,
   BookOpen,
   Calendar,
-  Activity,
-  Sparkles
+  Activity
 } from 'lucide-react';
 import api from '@/services/api';
 import Link from 'next/link';
@@ -199,8 +198,7 @@ export default function StudentDashboard({ user }) {
         {recommended.length > 0 && (
           <div className="space-y-4 pt-2">
             <div className="flex items-end justify-between">
-              <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-                <Sparkles size={18} className="text-[#A68868]" />
+              <h3 className="text-xl font-semibold text-slate-800">
                 Recommended for you
               </h3>
               <div className="hidden md:flex gap-2">
@@ -393,15 +391,16 @@ function MiniStat({ icon, label, value }) {
 
 function ContinueCard({ course }) {
   return (
-    <CourseHoverPreview course={course} enrolled>
+    <CourseHoverPreview course={course} enrolled className="snap-start shrink-0 w-[300px] sm:w-[340px]">
     <Link
       href={`/dashboard/courses/${course._id}?view=learn`}
-      className="snap-start shrink-0 w-[300px] sm:w-[340px] bg-white rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-xl transition-all overflow-hidden group"
+      className="block w-full bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-xl hover:bg-white transition-all overflow-hidden group"
     >
-      <div className="aspect-[16/9] overflow-hidden relative">
+      <div className="aspect-video overflow-hidden relative bg-slate-100">
         <img
           src={course.thumbnail && course.thumbnail !== 'no-photo.jpg' ? course.thumbnail : fallbackThumb(course._id)}
           alt=""
+          loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
@@ -446,13 +445,14 @@ function ContinueCard({ course }) {
 
 function EnrolledCard({ course }) {
   return (
-    <CourseHoverPreview course={course} enrolled>
+    <CourseHoverPreview course={course} enrolled className="block">
     <Link href={`/dashboard/courses/${course._id}?view=learn`}>
-      <div className="group bg-white rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all overflow-hidden cursor-pointer">
-        <div className="aspect-[16/9] overflow-hidden relative">
+      <div className="group bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-200 hover:bg-white hover:shadow-lg transition-all overflow-hidden cursor-pointer">
+        <div className="aspect-video overflow-hidden relative bg-slate-100">
           <img
             src={course.thumbnail && course.thumbnail !== 'no-photo.jpg' ? course.thumbnail : fallbackThumb(course._id)}
             alt=""
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
@@ -496,15 +496,16 @@ function RecommendedCard({ course }) {
   const disc = Number(course.discountPrice) || 0;
   const payable = disc > 0 && disc < list ? disc : list;
   return (
-    <CourseHoverPreview course={course} enrolled={false}>
+    <CourseHoverPreview course={course} enrolled={false} className="snap-start shrink-0 w-[260px]">
     <Link
       href={`/dashboard/courses/${course._id}`}
-      className="snap-start shrink-0 w-[260px] bg-white rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all overflow-hidden group"
+      className="block w-full bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg hover:bg-white transition-all overflow-hidden group"
     >
-      <div className="aspect-[16/10] overflow-hidden relative">
+      <div className="aspect-video overflow-hidden relative bg-slate-100">
         <img
           src={course.thumbnail && course.thumbnail !== 'no-photo.jpg' ? course.thumbnail : fallbackThumb(course._id)}
           alt=""
+          loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         {payable === 0 && (
@@ -521,12 +522,16 @@ function RecommendedCard({ course }) {
           {course.instructor?.name || 'EduFlow Mentor'}
         </p>
         <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-1">
-            <Star size={11} className="text-[#A68868] fill-[#A68868]" />
-            <span className="text-xs text-slate-700 font-semibold">
-              {course.averageRating?.toFixed(1) || '4.8'}
-            </span>
-          </div>
+          {course.averageRating > 0 ? (
+            <div className="flex items-center gap-1">
+              <Star size={11} className="text-[#A68868] fill-[#A68868]" />
+              <span className="text-xs text-slate-700 font-semibold">
+                {course.averageRating.toFixed(1)}
+              </span>
+            </div>
+          ) : (
+            <span className="text-[10px] text-slate-400 font-medium italic">New</span>
+          )}
           <div className="flex items-center gap-1.5">
             {payable === 0 ? (
               <span className="text-sm text-emerald-600 font-semibold">Free</span>

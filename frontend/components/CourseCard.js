@@ -4,13 +4,16 @@ import { useCartStore } from '@/store/useCartStore';
 import { useRouter } from 'next/navigation';
 
 export default function CourseCard({ course }) {
-  // Mocked data for UI demonstration
   const router = useRouter();
   const { items, addToCart } = useCartStore();
   const isInCart = items.some(item => item._id === course._id);
 
-  const originalPrice = (course.price * 1.5).toFixed(2);
-  const ratingsCount = Math.floor(Math.random() * 20000) + 500;
+  // Show the discounted price the instructor set; "list price" is the higher of price vs discountPrice.
+  const list = Number(course.price) || 0;
+  const disc = Number(course.discountPrice) || 0;
+  const originalPrice = (disc > 0 && disc < list ? list : null);
+  const ratingsCount = Number(course.totalRatings || course.reviewsCount || 0);
+  const rating = Number(course.averageRating || 0);
   
   return (
     <motion.div 
@@ -51,25 +54,31 @@ export default function CourseCard({ course }) {
           {course.instructor?.name || 'Academic Expert'}
         </p>
         
-        <div className="flex items-center gap-1 mb-3">
-          <span className="text-sm font-semibold text-orange-700">{course.averageRating || 4.6}</span>
-          <div className="flex items-center">
-            {[...Array(5)].map((_, i) => (
-              <Star 
-                key={i} 
-                size={10} 
-                fill={i < Math.floor(course.averageRating || 4) ? "#F59E0B" : "transparent"} 
-                className={i < Math.floor(course.averageRating || 4) ? "text-orange-400" : "text-slate-200"}
-              />
-            ))}
+        {ratingsCount > 0 ? (
+          <div className="flex items-center gap-1 mb-3">
+            <span className="text-sm font-semibold text-orange-700">{rating.toFixed(1)}</span>
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  size={10}
+                  fill={i < Math.round(rating) ? "#F59E0B" : "transparent"}
+                  className={i < Math.round(rating) ? "text-orange-400" : "text-slate-200"}
+                />
+              ))}
+            </div>
+            <span className="text-[10px] text-slate-400 font-light">({ratingsCount.toLocaleString()})</span>
           </div>
-          <span className="text-[10px] text-slate-400 font-light">({ratingsCount.toLocaleString()})</span>
-        </div>
+        ) : (
+          <p className="text-[11px] text-slate-400 font-medium italic mb-3">No ratings yet</p>
+        )}
 
         <div className="flex items-center gap-2 mb-4">
-          <div className="bg-[#A68868]/10 text-[#A68868] text-[9px] font-semibold px-2 py-0.5 rounded">
-            Bestseller
-          </div>
+          {rating >= 4.5 && ratingsCount >= 10 && (
+            <div className="bg-[#A68868]/10 text-[#A68868] text-[9px] font-semibold px-2 py-0.5 rounded">
+              Bestseller
+            </div>
+          )}
           {course.difficulty === 'beginner' && (
             <div className="bg-[#E3C39D]/20 text-[#8B6E4E] text-[9px] font-semibold px-2 py-0.5 rounded">
               Hot & New
@@ -83,8 +92,16 @@ export default function CourseCard({ course }) {
         </div>
 
         <div className="mt-auto flex items-center gap-2 pt-4 border-t border-slate-50">
-          <span className="text-lg font-semibold text-slate-900">${course.price || '199.00'}</span>
-          <span className="text-sm text-slate-400 font-light line-through">${originalPrice}</span>
+          {(disc > 0 && disc < list) ? (
+            <>
+              <span className="text-lg font-semibold text-slate-900">₹{disc}</span>
+              <span className="text-sm text-slate-400 font-light line-through">₹{list}</span>
+            </>
+          ) : list === 0 ? (
+            <span className="text-lg font-semibold text-emerald-600">Free</span>
+          ) : (
+            <span className="text-lg font-semibold text-slate-900">₹{list}</span>
+          )}
         </div>
       </div>
     </motion.div>

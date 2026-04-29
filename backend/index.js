@@ -31,6 +31,8 @@ app.use('/api/v1/admin', require('./routes/admin'));
 app.use('/api/v1/payments', require('./routes/payment'));
 app.use('/api/v1/coupons', require('./routes/coupons'));
 app.use('/api/v1/notifications', require('./routes/notifications'));
+app.use('/api/v1/profile', require('./routes/profile'));
+app.use('/api/v1/subscribers', require('./routes/subscribers'));
 app.use('/api/v1/reviews', require('./routes/reviews'));
 app.use('/api/v1/support', require('./routes/support'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
@@ -43,6 +45,7 @@ app.use('/api/v1/communication', require('./routes/communication'));
 app.use('/api/v1/performance', require('./routes/performance'));
 app.use('/api/v1/instructor-settings', require('./routes/instructorSettings'));
 app.use('/api/v1/instructor-applications', require('./routes/instructorApplications'));
+app.use('/api/v1/site-announcements', require('./routes/siteAnnouncements'));
 
 app.get('/', (req, res) => {
     res.json({ message: 'LMS API is running' });

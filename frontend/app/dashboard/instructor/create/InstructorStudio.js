@@ -238,6 +238,34 @@ export default function InstructorStudio({ courseId, initialData }) {
     if (courseData.status === 'pending' && statusArg !== 'pending') {
         status = 'draft';
     }
+
+    // Mandatory-field validation. Drafts allow partial saves so instructors can return later;
+    // anything beyond draft (Submit for Review / Publish) requires every required field.
+    if (status !== 'draft') {
+        const missing = [];
+        if (!courseData.title?.trim())       missing.push('Course Title');
+        if (!courseData.description?.trim()) missing.push('Course Description');
+        if (!courseData.category)            missing.push('Category');
+
+        // Subcategory is required whenever the selected category actually exposes any.
+        // (Some top-level categories may have no children — we don't block in that case.)
+        const subOptions = subcategories.filter(s => (s.parentId?._id || s.parentId) === courseData.category);
+        if (subOptions.length > 0 && !courseData.subcategory) missing.push('Subcategory');
+
+        if (!courseData.difficulty)          missing.push('Level');
+        if (!courseData.pricingType)         missing.push('Pricing Strategy');
+        if (courseData.pricingType === 'paid' && !(Number(courseData.price) > 0)) {
+            missing.push('Regular Price');
+        }
+        if (!modules || modules.length === 0 || (modules.length === 1 && (!modules[0].lessons || modules[0].lessons.length === 0))) {
+            missing.push('At least one module with a lesson');
+        }
+        if (missing.length > 0) {
+            setSaveStatus(`Please complete: ${missing.join(', ')}`);
+            return;
+        }
+    }
+
     setLoading(true);
     setSaveStatus('Saving everything...');
     try {
@@ -491,15 +519,23 @@ export default function InstructorStudio({ courseId, initialData }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2 space-y-8">
             <Card className="p-8">
-               <h3 className="font-bold text-slate-900 text-xl mb-8 flex items-center gap-3">
-                 <span className="w-8 h-8 rounded-full bg-slate-100 text-[#071739] flex items-center justify-center text-xs">1</span>
-                 Basic Information
-               </h3>
+               <div className="flex items-center justify-between mb-8 flex-wrap gap-2">
+                 <h3 className="font-bold text-slate-900 text-xl flex items-center gap-3">
+                   <span className="w-8 h-8 rounded-full bg-slate-100 text-[#071739] flex items-center justify-center text-xs">1</span>
+                   Basic Information
+                 </h3>
+                 <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+                   Fields marked <span className="text-rose-500">*</span> are required
+                 </p>
+               </div>
                <div className="space-y-6">
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Course Title</label>
-                    <input 
-                      type="text" 
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Course Title <span className="text-rose-500" aria-label="required">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
                       value={courseData.title}
                       onChange={(e) => setCourseData({...courseData, title: e.target.value})}
                       placeholder="e.g. Mastering Digital Typography"
@@ -507,8 +543,11 @@ export default function InstructorStudio({ courseId, initialData }) {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Course Description</label>
-                    <textarea 
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                      Course Description <span className="text-rose-500" aria-label="required">*</span>
+                    </label>
+                    <textarea
+                      required
                       value={courseData.description}
                       onChange={(e) => setCourseData({...courseData, description: e.target.value})}
                       placeholder="Detailed course description..."
@@ -537,8 +576,10 @@ export default function InstructorStudio({ courseId, initialData }) {
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div className="col-span-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Category</label>
-                      <select 
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                        Category <span className="text-rose-500" aria-label="required">*</span>
+                      </label>
+                      <select
                         value={courseData.category}
                         onChange={(e) => setCourseData({...courseData, category: e.target.value, subcategory: ''})}
                         className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 appearance-none"
@@ -551,12 +592,15 @@ export default function InstructorStudio({ courseId, initialData }) {
                       </select>
                     </div>
                     <div className="col-span-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Subcategory</label>
-                      <select 
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                        Subcategory <span className="text-rose-500" aria-label="required">*</span>
+                      </label>
+                      <select
                         value={courseData.subcategory}
                         onChange={(e) => setCourseData({...courseData, subcategory: e.target.value})}
                         className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 appearance-none disabled:opacity-50"
                         disabled={!courseData.category}
+                        required
                       >
                         <option value="">Select Subcategory</option>
                         {subcategories
@@ -570,8 +614,10 @@ export default function InstructorStudio({ courseId, initialData }) {
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div className="col-span-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Level</label>
-                      <select 
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                        Level <span className="text-rose-500" aria-label="required">*</span>
+                      </label>
+                      <select
                         value={courseData.difficulty}
                         onChange={(e) => setCourseData({...courseData, difficulty: e.target.value})}
                         className="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-600/10 appearance-none"
@@ -708,7 +754,9 @@ export default function InstructorStudio({ courseId, initialData }) {
                   </div>
                   <div className="space-y-6 pt-6 border-t border-slate-100">
                     <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">Pricing Strategy</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">
+                          Pricing Strategy <span className="text-rose-500" aria-label="required">*</span>
+                        </label>
                         <div className="flex items-center gap-4">
                             <button 
                                 type="button"
@@ -739,9 +787,12 @@ export default function InstructorStudio({ courseId, initialData }) {
                         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Regular Price (INR)</label>
-                                <input 
-                                    type="number" 
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                                  Regular Price (INR) <span className="text-rose-500" aria-label="required">*</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    required
                                     value={courseData.price}
                                     onChange={(e) => setCourseData({...courseData, price: e.target.value})}
                                     placeholder="e.g. 1999"
@@ -776,7 +827,7 @@ export default function InstructorStudio({ courseId, initialData }) {
                <div className="flex justify-between items-center">
                   <h3 className="font-bold text-slate-900 text-xl flex items-center gap-3">
                     <span className="w-8 h-8 rounded-full bg-slate-100 text-[#071739] flex items-center justify-center text-xs">2</span>
-                    Curriculum Builder
+                    Curriculum Builder <span className="text-rose-500" aria-label="required">*</span>
                   </h3>
                   <button 
                     onClick={addModule}

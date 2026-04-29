@@ -57,4 +57,16 @@ router.get('/content/monitoring', getContentMonitoring);
 router.get('/reviews/stats', getReviewStats);
 router.get('/users/:id/analytics', getUserAnalytics);
 
+// Subscription module — subscribers + campaigns
+const subAdmin = require('../controllers/subscriptionAdminController');
+router.get('/subscribers', subAdmin.listSubscribers);
+router.get('/subscribers/stats', subAdmin.subscriberStats);
+router.delete('/subscribers/:id', subAdmin.deleteSubscriber);
+
+router.get('/campaigns', subAdmin.listCampaigns);
+router.post('/campaigns', subAdmin.createCampaign);
+router.post('/campaigns/preview-audience', subAdmin.previewAudience);
+router.post('/campaigns/:id/send', subAdmin.sendCampaign);
+router.delete('/campaigns/:id', subAdmin.deleteCampaign);
+
 module.exports = router;

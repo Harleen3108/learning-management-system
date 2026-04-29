@@ -233,16 +233,26 @@ export default function InstructorDashboard({ user }) {
                   <p className="text-[10px] text-slate-400 font-semibold tracking-tight line-clamp-1">{(course.category?.name ?? course.category) || 'Professional Course'}</p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-amber-600">4.8</span>
-                    <div className="flex items-center gap-0.5 text-amber-500">
-                        <Star size={10} fill="currentColor" />
-                        <Star size={10} fill="currentColor" />
-                        <Star size={10} fill="currentColor" />
-                        <Star size={10} fill="currentColor" />
-                        <Star size={10} fill="currentColor" />
-                    </div>
-                </div>
+                {course.averageRating > 0 ? (
+                  <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-amber-600">{Number(course.averageRating).toFixed(1)}</span>
+                      <div className="flex items-center gap-0.5 text-amber-500">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={10}
+                              fill={i < Math.round(course.averageRating) ? "currentColor" : "none"}
+                              className={i < Math.round(course.averageRating) ? "text-amber-500" : "text-slate-200"}
+                            />
+                          ))}
+                      </div>
+                      {course.totalRatings > 0 && (
+                        <span className="text-[10px] text-slate-400 font-medium">({course.totalRatings})</span>
+                      )}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-400 font-medium italic">No ratings yet</p>
+                )}
 
                 <div className="flex items-center gap-2 pt-1">
                     <span className="text-sm font-semibold text-slate-900">₹{course.discountPrice || course.price || 'Free'}</span>

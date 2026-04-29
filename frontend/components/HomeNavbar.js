@@ -19,6 +19,7 @@ import {
 import api from '@/services/api';
 import AnnouncementBar from './AnnouncementBar';
 import LanguageModal from './LanguageModal';
+import SubscribeModal from './SubscribeModal';
 
 export default function HomeNavbar() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function HomeNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [isSubscribeOpen, setIsSubscribeOpen] = useState(false);
   const { language } = useLanguageStore();
   const t = translations[language] || translations.English;
   const [mounted, setMounted] = useState(false);
@@ -72,9 +74,13 @@ export default function HomeNavbar() {
         </Link>
 
         {/* Subscribe */}
-        <Link href="#" className="hidden lg:block text-[14px] font-medium text-slate-700 hover:text-[#071739] transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsSubscribeOpen(true)}
+          className="hidden lg:block text-[14px] font-medium text-slate-700 hover:text-[#071739] transition-colors"
+        >
           {t.nav.subscribe}
-        </Link>
+        </button>
 
         {/* Search Bar */}
         <div className="hidden xl:flex items-center flex-1 max-w-md relative">
@@ -133,6 +139,7 @@ export default function HomeNavbar() {
           </button>
           
           <LanguageModal isOpen={isLanguageModalOpen} onClose={() => setIsLanguageModalOpen(false)} />
+          <SubscribeModal isOpen={isSubscribeOpen} onClose={() => setIsSubscribeOpen(false)} />
 
           {/* Mobile Toggle */}
           <button 
@@ -158,8 +165,14 @@ export default function HomeNavbar() {
               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2"><X size={28} /></button>
             </div>
             <div className="p-6 space-y-4">
-              <Link href="/explore" className="block text-lg font-medium text-slate-800 border-b border-slate-50 pb-2">Explore</Link>
-              <Link href="#" className="block text-lg font-medium text-slate-800 border-b border-slate-50 pb-2">Subscribe</Link>
+              <Link href="/explore" className="block text-lg font-medium text-slate-800 border-b border-slate-50 pb-2" onClick={() => setIsMobileMenuOpen(false)}>Explore</Link>
+              <button
+                type="button"
+                onClick={() => { setIsSubscribeOpen(true); setIsMobileMenuOpen(false); }}
+                className="block w-full text-left text-lg font-medium text-slate-800 border-b border-slate-50 pb-2"
+              >
+                Subscribe
+              </button>
               <Link href="/dashboard/instructor" className="block text-lg font-medium text-slate-800 border-b border-slate-50 pb-2">Teach on EduFlow</Link>
               <div className="pt-8 flex flex-col gap-4">
                 {!isAuthenticated ? (

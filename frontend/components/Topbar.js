@@ -24,7 +24,10 @@ import {
   Wrench,
   Library,
   Video,
-  Globe
+  Globe,
+  Mail,
+  Megaphone,
+  User as UserIcon
 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -118,6 +121,8 @@ export default function Topbar({ onToggleSidebar, sidebarOpen } = {}) {
     { label: 'Transactions', href: '/dashboard/admin/transactions', icon: CreditCard },
     { label: 'Coupons', href: '/dashboard/admin/coupons', icon: Ticket },
     { label: 'Payment Logs', href: '/dashboard/admin/payments/logs', icon: Receipt },
+    { label: 'Subscriptions & Offers', href: '/dashboard/admin/subscriptions', icon: Mail },
+    { label: 'Announcements', href: '/dashboard/admin/announcements', icon: Megaphone },
   ];
 
   const handleLogout = () => {
@@ -405,7 +410,15 @@ export default function Topbar({ onToggleSidebar, sidebarOpen } = {}) {
                   <p className="text-sm font-semibold text-slate-900 leading-none">{user?.name}</p>
                   <p className="text-[10px] text-slate-400 font-normal uppercase tracking-widest mt-1">{user?.email}</p>
                 </div>
-                <Link href="/dashboard/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-600 transition-all">
+                <Link href="/dashboard/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-600 transition-all" onClick={() => setIsProfileOpen(false)}>
+                  <UserIcon size={18} />
+                  <span className="text-sm font-semibold">Profile</span>
+                </Link>
+                <Link href="/dashboard/purchases" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-600 transition-all" onClick={() => setIsProfileOpen(false)}>
+                  <Receipt size={18} />
+                  <span className="text-sm font-semibold">My Purchases</span>
+                </Link>
+                <Link href="/dashboard/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-600 transition-all" onClick={() => setIsProfileOpen(false)}>
                   <Settings size={18} />
                   <span className="text-sm font-semibold">Account Settings</span>
                 </Link>

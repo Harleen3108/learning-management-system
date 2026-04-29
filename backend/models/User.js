@@ -72,6 +72,45 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+
+    // ─────────────── Public profile (Coursera-style) ───────────────
+    profile: {
+        about: { type: String, trim: true, maxlength: 500 },
+        occupation: { type: String, trim: true },
+        interests: [{ type: String, trim: true }],
+        resumeUrl: { type: String, trim: true },
+        // Up to 5 free-form labelled URLs the learner can share (LinkedIn, GitHub, etc.)
+        links: [{
+            label: { type: String, trim: true },
+            url: { type: String, trim: true }
+        }],
+        // Roles & relocation preferences for recruiter-facing context
+        workPreferences: {
+            role: { type: String, trim: true },
+            industry: { type: String, trim: true },
+            openToRemote: { type: Boolean, default: false },
+            willingToRelocate: { type: Boolean, default: false }
+        },
+        // Past jobs / internships
+        workHistory: [{
+            title: { type: String, trim: true, required: true },
+            company: { type: String, trim: true, required: true },
+            startDate: Date,
+            endDate: Date, // null/undefined = present
+            description: { type: String, trim: true }
+        }],
+        // Schools, bootcamps, etc.
+        education: [{
+            school: { type: String, trim: true, required: true },
+            degree: { type: String, trim: true },
+            field: { type: String, trim: true },
+            startYear: Number,
+            endYear: Number
+        }],
+        // Whether the public share link is enabled
+        isPublic: { type: Boolean, default: true }
+    },
+
     createdAt: {
         type: Date,
         default: Date.now

@@ -33,7 +33,7 @@ import { clsx } from 'clsx';
  *   • Auto-flips to the other side of the card if there isn't room on the right
  *   • Hidden on touch devices (no hover) — your normal card click still works
  */
-export default function CourseHoverPreview({ course, enrolled = false, children }) {
+export default function CourseHoverPreview({ course, enrolled = false, className = '', children }) {
     const triggerRef = useRef(null);
     const popupRef = useRef(null);
     const enterTimer = useRef(null);
@@ -98,7 +98,7 @@ export default function CourseHoverPreview({ course, enrolled = false, children 
                 ref={triggerRef}
                 onMouseEnter={handleEnter}
                 onMouseLeave={handleLeave}
-                className="relative"
+                className={`relative ${className}`}
             >
                 {children}
             </div>
@@ -213,17 +213,19 @@ function PopupBody({ course, enrolled }) {
                 )}
             </div>
 
-            {/* Rating */}
-            {(course.averageRating || course.totalRatings) && (
+            {/* Rating — only when there's real data */}
+            {course.averageRating > 0 ? (
                 <div className="flex items-center gap-1.5 text-xs">
                     <Star size={12} className="text-[#A68868] fill-[#A68868]" />
                     <span className="text-slate-700 font-semibold">
-                        {course.averageRating ? course.averageRating.toFixed(1) : '4.5'}
+                        {Number(course.averageRating).toFixed(1)}
                     </span>
                     <span className="text-slate-400 font-medium">
-                        ({course.totalRatings || course.reviewsCount || 0})
+                        ({course.totalRatings || course.reviewsCount || 0} {(course.totalRatings || course.reviewsCount) === 1 ? 'rating' : 'ratings'})
                     </span>
                 </div>
+            ) : (
+                <span className="text-[11px] text-slate-400 font-medium italic">No ratings yet</span>
             )}
 
             {/* Short description */}
