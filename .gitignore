@@ -20,8 +20,10 @@ out/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-logs
 *.log
+# (Note: do NOT add a bare `logs` line here — it matches the
+# `app/dashboard/admin/logs/` and `app/dashboard/admin/payments/logs/`
+# Next.js page folders and excludes them from the build.)
 
 # OS metadata
 .DS_Store
