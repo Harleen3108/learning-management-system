@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { 
+import {
     Infinity as InfinityIcon,
     ArrowRight,
     Play,
@@ -22,7 +22,11 @@ import {
     Lock,
     Unlock,
     Baby,
-    Clock
+    Clock,
+    BookOpen,
+    ClipboardList,
+    HelpCircle,
+    Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
@@ -594,60 +598,147 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                         </button>
                     </section>
 
-                    {/* 2. This course includes */}
-                    <section id="course-includes" className="space-y-6">
-                        <h2 className="text-2xl font-semibold tracking-tight">This course includes:</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12">
-                            <div className="flex items-center gap-4 text-sm font-medium text-slate-600">
-                                <PlayCircle size={18} className="text-slate-400" />
-                                <span>14.5 hours on-demand video</span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm font-medium text-slate-600">
-                                <FileText size={18} className="text-slate-400" />
-                                <span>25 downloadable resources</span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm font-medium text-slate-600">
-                                <InfinityIcon size={18} className="text-slate-400" />
-                                <span>Full lifetime access</span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm font-medium text-slate-600">
-                                <Smartphone size={18} className="text-slate-400" />
-                                <span>Access on mobile and TV</span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm font-medium text-slate-600">
-                                <Trophy size={18} className="text-slate-400" />
-                                <span>Certificate of completion</span>
-                            </div>
-                        </div>
-                    </section>
+                    {/* 2. This course includes — computed from real course content */}
+                    {(() => {
+                        // Walk every lesson + module to count what the instructor actually built.
+                        let videoSeconds = 0;
+                        let videoCount = 0;
+                        let readingCount = 0;
+                        let assignmentCount = 0;
+                        let totalQuestions = 0;
+                        let downloadCount = 0;
+                        const seenDownloads = new Set();
+                        const addDownload = (d) => {
+                            if (!d?.url || seenDownloads.has(d.url)) return;
+                            seenDownloads.add(d.url);
+                            downloadCount++;
+                        };
+                        (course.modules || []).forEach(m => {
+                            (m.attachments || []).forEach(addDownload);
+                            (m.lessons || []).forEach(l => {
+                                if ((l.type || 'video') === 'video') {
+                                    videoCount++;
+                                    videoSeconds += l.duration || 0;
+                                } else if (l.type === 'reading') {
+                                    readingCount++;
+                                } else if (l.type === 'assignment') {
+                                    assignmentCount++;
+                                    totalQuestions += l.assignment?.questions?.length || 0;
+                                }
+                                (l.attachments || []).forEach(addDownload);
+                                (l.downloads || []).forEach(addDownload);
+                            });
+                        });
+                        const quizCount = (course.modules || []).reduce((a, m) => a + (m.quizzes?.length || 0), 0);
 
-                    {/* 3. Course Content */}
+                        // Format video total: "X.X hours" if ≥1h, "X min" otherwise.
+                        const fmtDuration = (sec) => {
+                            if (!sec) return '';
+                            const hours = sec / 3600;
+                            if (hours >= 1) {
+                                const rounded = Math.round(hours * 10) / 10;
+                                return `${rounded} ${rounded === 1 ? 'hour' : 'hours'} of video`;
+                            }
+                            const mins = Math.max(1, Math.round(sec / 60));
+                            return `${mins} ${mins === 1 ? 'minute' : 'minutes'} of video`;
+                        };
+
+                        // Build the items list in priority order, only including ones with > 0
+                        const items = [];
+                        if (videoCount > 0) {
+                            items.push({
+                                Icon: PlayCircle,
+                                label: videoSeconds > 0
+                                    ? fmtDuration(videoSeconds)
+                                    : `${videoCount} video lesson${videoCount === 1 ? '' : 's'}`
+                            });
+                        }
+                        if (readingCount > 0) {
+                            items.push({ Icon: BookOpen, label: `${readingCount} reading${readingCount === 1 ? '' : 's'}` });
+                        }
+                        if (assignmentCount > 0) {
+                            items.push({
+                                Icon: ClipboardList,
+                                label: `${assignmentCount} practice assignment${assignmentCount === 1 ? '' : 's'}${totalQuestions > 0 ? ` (${totalQuestions} questions)` : ''}`
+                            });
+                        }
+                        if (quizCount > 0) {
+                            items.push({ Icon: HelpCircle, label: `${quizCount} quiz${quizCount === 1 ? '' : 'zes'}` });
+                        }
+                        if (downloadCount > 0) {
+                            items.push({ Icon: Download, label: `${downloadCount} downloadable resource${downloadCount === 1 ? '' : 's'}` });
+                        }
+                        // Always-true bullets: lifetime access, mobile/TV, certificate
+                        items.push({ Icon: InfinityIcon, label: 'Full lifetime access' });
+                        items.push({ Icon: Smartphone, label: 'Access on mobile and TV' });
+                        items.push({ Icon: Trophy, label: 'Certificate of completion' });
+
+                        return (
+                            <section id="course-includes" className="space-y-6">
+                                <h2 className="text-2xl font-semibold tracking-tight">This course includes:</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12">
+                                    {items.map((it, i) => (
+                                        <div key={i} className="flex items-center gap-4 text-sm font-medium text-slate-600">
+                                            <it.Icon size={18} className="text-slate-400" />
+                                            <span>{it.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        );
+                    })()}
+
+                    {/* 3. Course Content — type-aware listing built from real lesson data */}
                     <section id="curriculum">
                         <h2 className="text-2xl font-semibold mb-6 tracking-tight">Course content</h2>
-                        <div className="flex justify-between items-center text-sm font-medium text-slate-600 mb-4">
-                            <div className="flex items-center gap-2">
-                                <span>{course.modules.length} sections</span>
-                                <span className="text-slate-300">•</span>
-                                <span>{totalLessons} lectures</span>
-                                <span className="text-slate-300">•</span>
-                                <span>3h 25m total length</span>
-                            </div>
-                            <button 
-                                onClick={() => {
-                                    const allExp = {};
-                                    course.modules.forEach(m => allExp[m._id] = true);
-                                    setExpandedModules(allExp);
-                                }}
-                                className="text-blue-600 font-semibold hover:text-blue-700 transition-all"
-                            >
-                                Expand all sections
-                            </button>
-                        </div>
+                        {(() => {
+                            const totalItems = (course.modules || []).reduce((a, m) => a + (m.lessons?.length || 0) + (m.quizzes?.length || 0), 0);
+                            const totalSec = (course.modules || []).reduce((a, m) =>
+                                a + (m.lessons || []).reduce((b, l) => b + ((l.type || 'video') === 'video' ? (l.duration || 0) : 0), 0)
+                            , 0);
+                            const fmtTotal = (sec) => {
+                                if (!sec) return null;
+                                const h = Math.floor(sec / 3600);
+                                const m = Math.floor((sec % 3600) / 60);
+                                if (h > 0) return `${h}h ${m}m total length`;
+                                return `${m}m total length`;
+                            };
+                            const totalLabel = fmtTotal(totalSec);
+                            return (
+                                <div className="flex justify-between items-center text-sm font-medium text-slate-600 mb-4 flex-wrap gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span>{course.modules.length} section{course.modules.length === 1 ? '' : 's'}</span>
+                                        <span className="text-slate-300">•</span>
+                                        <span>{totalItems} item{totalItems === 1 ? '' : 's'}</span>
+                                        {totalLabel && (
+                                            <>
+                                                <span className="text-slate-300">•</span>
+                                                <span>{totalLabel}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            const allExp = {};
+                                            course.modules.forEach(m => allExp[m._id] = true);
+                                            setExpandedModules(allExp);
+                                        }}
+                                        className="text-blue-600 font-semibold hover:text-blue-700 transition-all"
+                                    >
+                                        Expand all sections
+                                    </button>
+                                </div>
+                            );
+                        })()}
 
                         <div className="border border-slate-200 divide-y divide-slate-200">
-                            {course.modules.map((module) => (
+                            {course.modules.map((module) => {
+                                const moduleItems = (module.lessons?.length || 0) + (module.quizzes?.length || 0);
+                                const moduleSec = (module.lessons || []).reduce((b, l) => b + ((l.type || 'video') === 'video' ? (l.duration || 0) : 0), 0);
+                                const modDur = moduleSec > 0 ? `${Math.ceil(moduleSec / 60)}min` : null;
+                                return (
                                 <div key={module._id}>
-                                    <button 
+                                    <button
                                         onClick={() => toggleModule(module._id)}
                                         className="w-full flex items-center justify-between p-4 lg:p-6 bg-[#f7f9fa] hover:bg-slate-100 transition-all group"
                                     >
@@ -656,38 +747,64 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                                             <span className="font-semibold text-left">{module.title}</span>
                                         </div>
                                         <div className="text-sm font-medium text-slate-500 whitespace-nowrap">
-                                            {module.lessons.length} lectures • 15min
+                                            {moduleItems} item{moduleItems === 1 ? '' : 's'}{modDur ? ` • ${modDur}` : ''}
                                         </div>
                                     </button>
                                     <AnimatePresence>
                                         {expandedModules[module._id] && (
-                                            <motion.div 
+                                            <motion.div
                                                 initial={{ height: 0, opacity: 0 }}
                                                 animate={{ height: 'auto', opacity: 1 }}
                                                 exit={{ height: 0, opacity: 0 }}
                                                 className="overflow-hidden bg-white"
                                             >
                                                 <div className="divide-y divide-slate-100">
-                                                    {module.lessons.map((lesson) => (
-                                                        <div key={lesson._id} className="flex items-center justify-between p-4 pl-12 text-sm">
-                                                            <div className="flex items-center gap-4 text-slate-600">
-                                                                <PlayCircle size={16} className="text-slate-400" />
-                                                                <span className={clsx(
-                                                                    "font-medium",
-                                                                    lesson.isFree ? "text-blue-600 underline cursor-pointer" : ""
-                                                                )}>{lesson.title}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-6 text-slate-400 font-medium">
-                                                                {lesson.isFree ? (
-                                                                    <div className="flex items-center gap-4">
-                                                                        <span className="text-blue-600 underline cursor-pointer">Preview</span>
-                                                                        <Unlock size={14} className="text-emerald-500" />
+                                                    {module.lessons.map((lesson) => {
+                                                        const lt = lesson.type || 'video';
+                                                        const Icon = lt === 'reading' ? BookOpen
+                                                                   : lt === 'assignment' ? ClipboardList
+                                                                   : PlayCircle;
+                                                        const meta = lt === 'video'
+                                                            ? (lesson.duration ? `${Math.floor(lesson.duration / 60)}:${String(lesson.duration % 60).padStart(2, '0')}` : '')
+                                                            : lt === 'reading'
+                                                                ? `${lesson.readingMinutes || 4} min read`
+                                                                : `${lesson.assignment?.questions?.length || 0} question${(lesson.assignment?.questions?.length || 0) === 1 ? '' : 's'}`;
+                                                        const typeLabel = lt === 'video' ? 'Video' : lt === 'reading' ? 'Reading' : 'Practice';
+                                                        return (
+                                                            <div key={lesson._id} className="flex items-center justify-between p-4 pl-12 text-sm">
+                                                                <div className="flex items-center gap-4 text-slate-600 min-w-0">
+                                                                    <Icon size={16} className="text-slate-400 shrink-0" />
+                                                                    <div className="min-w-0">
+                                                                        <span className={clsx(
+                                                                            "font-medium",
+                                                                            lesson.isFree ? "text-blue-600 underline cursor-pointer" : ""
+                                                                        )}>{lesson.title}</span>
+                                                                        <p className="text-[11px] text-slate-400 font-medium mt-0.5">{typeLabel}{meta && ` • ${meta}`}</p>
                                                                     </div>
-                                                                ) : (
-                                                                    <Lock size={14} className="text-slate-300" />
-                                                                )}
-                                                                <span>02:45</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-4 text-slate-400 font-medium shrink-0">
+                                                                    {lesson.isFree && lt === 'video' ? (
+                                                                        <>
+                                                                            <span className="text-blue-600 underline cursor-pointer hidden sm:inline">Preview</span>
+                                                                            <Unlock size={14} className="text-emerald-500" />
+                                                                        </>
+                                                                    ) : (
+                                                                        <Lock size={14} className="text-slate-300" />
+                                                                    )}
+                                                                </div>
                                                             </div>
+                                                        );
+                                                    })}
+                                                    {(module.quizzes || []).map((quiz) => (
+                                                        <div key={quiz._id} className="flex items-center justify-between p-4 pl-12 text-sm">
+                                                            <div className="flex items-center gap-4 text-slate-600 min-w-0">
+                                                                <HelpCircle size={16} className="text-amber-500 shrink-0" />
+                                                                <div className="min-w-0">
+                                                                    <span className="font-medium">{quiz.title}</span>
+                                                                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Quiz • {quiz.questions?.length || 0} question{(quiz.questions?.length || 0) === 1 ? '' : 's'}</p>
+                                                                </div>
+                                                            </div>
+                                                            <Lock size={14} className="text-slate-300 shrink-0" />
                                                         </div>
                                                     ))}
                                                 </div>
@@ -695,7 +812,8 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                                         )}
                                     </AnimatePresence>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </section>
 
@@ -710,6 +828,18 @@ export default function CourseLandingPage({ courseId, isEnrolled, onStartLearnin
                             )}
                         </ul>
                     </section>
+
+                    {/* 4b. Who this course is for — only render when populated so empty courses stay clean */}
+                    {course.targetAudience?.length > 0 && (
+                        <section id="audience">
+                            <h2 className="text-2xl font-semibold mb-6 tracking-tight">Who this course is for</h2>
+                            <ul className="list-disc pl-5 space-y-2 text-sm font-medium text-slate-600 leading-relaxed">
+                                {course.targetAudience.map((aud, i) => (
+                                    <li key={i}>{aud}</li>
+                                ))}
+                            </ul>
+                        </section>
+                    )}
 
                     {/* 5. Description */}
                     <section id="description" className="space-y-6">

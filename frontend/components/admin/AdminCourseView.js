@@ -30,7 +30,12 @@ import {
     Activity,
     X,
     Send,
-    Tag
+    Tag,
+    PlayCircle,
+    BookOpen,
+    ClipboardList,
+    Download,
+    Paperclip
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -132,16 +137,19 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
     const handlePreviewLesson = async (lesson) => {
         setPreviewLesson(lesson);
         setLessonFeedback(lesson.feedback || '');
-        setPreviewLoading(true);
         setLessonVideoUrl(null);
+        // Only fetch a video URL for video lessons. Readings/assignments are
+        // self-contained on the lesson document and don't need a Cloudinary call.
+        if ((lesson.type || 'video') !== 'video') {
+            setPreviewLoading(false);
+            return;
+        }
+        setPreviewLoading(true);
         try {
             const res = await api.get(`/courses/${courseId}/lessons/${lesson._id}/video`);
             setLessonVideoUrl(res.data.videoUrl);
         } catch (err) {
             console.error('Failed to fetch lesson video:', err);
-            // Fallback: If it's a 400 it might be a missing videoPublicId, 
-            // maybe we can show the lesson.videoUrl as a fallback for admins?
-            // But let's just show the error in console for now and handle the UI state.
         } finally {
             setPreviewLoading(false);
         }
@@ -462,36 +470,93 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                                 exit={{ opacity: 0, y: -10 }}
                                                 className="pl-6 space-y-3"
                                             >
-                                                {module.lessons?.map((lesson, lIndex) => (
-                                                    <div key={lesson._id} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group">
-                                                        <div 
-                                                            onClick={() => handlePreviewLesson(lesson)}
-                                                            className="w-10 h-10 bg-white shadow-sm border border-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors cursor-pointer"
-                                                        >
-                                                            <Play size={16} className="fill-current" />
+                                                {/* Module-level attachments — surfaced so admin can verify what the
+                                                    instructor uploaded at the section level (slides, briefs, etc.) */}
+                                                {(module.attachments || []).map((att, aIdx) => (
+                                                    <div key={`mod-att-${aIdx}`} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50/40 border border-slate-100">
+                                                        <div className="w-10 h-10 bg-white shadow-sm border border-slate-50 rounded-xl flex items-center justify-center text-blue-500">
+                                                            <Paperclip size={16} />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-slate-800 tracking-tight">{lesson.title}</p>
-                                                            <div className="flex items-center gap-3 mt-1">
-                                                                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest flex items-center gap-1">
-                                                                    <Clock size={12} /> {lesson.duration ? `${Math.floor(lesson.duration/60)}m` : 'Streaming'}
-                                                                </span>
-                                                                {lesson.feedback && (
-                                                                    <span className="text-[9px] text-orange-500 font-semibold uppercase tracking-widest flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded">
-                                                                        <MessageSquare size={10} /> Has Feedback
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                            <p className="text-sm font-semibold text-slate-800 tracking-tight truncate">{att.name || 'Module resource'}</p>
+                                                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Module attachment</span>
                                                         </div>
-                                                        <button 
-                                                            onClick={() => handlePreviewLesson(lesson)}
-                                                            className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest hover:text-primary"
+                                                        <a
+                                                            href={att.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-[10px] font-semibold text-blue-500 uppercase tracking-widest hover:text-blue-700"
                                                         >
-                                                            Review
-                                                        </button>
+                                                            View
+                                                        </a>
                                                     </div>
                                                 ))}
-                                                {module.lessons?.length === 0 && module.quizzes?.length === 0 && <p className="text-xs text-slate-400 italic py-2">No instructional units defined for this module.</p>}
+
+                                                {module.lessons?.map((lesson, lIndex) => {
+                                                    // Type-aware row rendering: every lesson kind shown distinctly so
+                                                    // the admin sees readings + assignments, not just videos.
+                                                    const lt = lesson.type || 'video';
+                                                    const meta = lt === 'video'
+                                                        ? (lesson.duration ? `${Math.floor(lesson.duration/60)}m ${lesson.duration%60 ? lesson.duration%60+'s' : ''}` : (lesson.videoUrl ? 'Streaming' : 'No video'))
+                                                        : lt === 'reading'
+                                                            ? `${lesson.readingMinutes || 4} min read`
+                                                            : `${lesson.assignment?.questions?.length || 0} question${(lesson.assignment?.questions?.length || 0) === 1 ? '' : 's'}`;
+                                                    const typeBadge = lt === 'video' ? { Icon: PlayCircle, label: 'Video', color: 'text-[#071739]', bg: 'bg-white' }
+                                                                    : lt === 'reading' ? { Icon: BookOpen, label: 'Reading', color: 'text-amber-600', bg: 'bg-amber-50' }
+                                                                    : { Icon: ClipboardList, label: 'Assignment', color: 'text-emerald-600', bg: 'bg-emerald-50' };
+                                                    const downloadCount = (lesson.attachments?.length || 0) + (lesson.downloads?.length || 0);
+                                                    return (
+                                                        <div key={lesson._id} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group">
+                                                            <div
+                                                                onClick={() => handlePreviewLesson(lesson)}
+                                                                className={clsx(
+                                                                    'w-10 h-10 shadow-sm border border-slate-50 rounded-xl flex items-center justify-center transition-colors cursor-pointer',
+                                                                    typeBadge.bg, typeBadge.color
+                                                                )}
+                                                            >
+                                                                <typeBadge.Icon size={16} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-semibold text-slate-800 tracking-tight">{lesson.title}</p>
+                                                                <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                                                    <span className={clsx(
+                                                                        'text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full',
+                                                                        lt === 'reading' ? 'bg-amber-100 text-amber-700'
+                                                                            : lt === 'assignment' ? 'bg-emerald-100 text-emerald-700'
+                                                                            : 'bg-[#071739]/10 text-[#071739]'
+                                                                    )}>
+                                                                        {typeBadge.label}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest flex items-center gap-1">
+                                                                        <Clock size={12} /> {meta}
+                                                                    </span>
+                                                                    {downloadCount > 0 && (
+                                                                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest flex items-center gap-1">
+                                                                            <Download size={12} /> {downloadCount} file{downloadCount === 1 ? '' : 's'}
+                                                                        </span>
+                                                                    )}
+                                                                    {lesson.isFree && (
+                                                                        <span className="text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                                                            Free preview
+                                                                        </span>
+                                                                    )}
+                                                                    {lesson.feedback && (
+                                                                        <span className="text-[9px] text-orange-500 font-semibold uppercase tracking-widest flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded">
+                                                                            <MessageSquare size={10} /> Has Feedback
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handlePreviewLesson(lesson)}
+                                                                className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest hover:text-primary"
+                                                            >
+                                                                Review
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {module.lessons?.length === 0 && module.quizzes?.length === 0 && (module.attachments?.length || 0) === 0 && <p className="text-xs text-slate-400 italic py-2">No instructional units defined for this module.</p>}
                                                 
                                                 {/* Quizzes Mapping */}
                                                 {module.quizzes?.map((quiz, qIndex) => (
@@ -828,24 +893,95 @@ export default function AdminCourseView({ courseId, onStatusUpdate }) {
                                 <X size={24} />
                             </button>
 
-                            {/* Left: Video Player */}
-                            <div className="flex-[1.5] bg-black relative flex items-center justify-center">
-                                {previewLoading ? (
-                                    <div className="flex flex-col items-center gap-4 text-white/40">
-                                        <Loader2 className="animate-spin" size={32} />
-                                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em]">Acquiring Token...</p>
+                            {/* Left: Type-aware preview pane */}
+                            <div className={clsx(
+                                'flex-[1.5] relative flex items-center justify-center',
+                                previewLesson.type === 'video' ? 'bg-black' : 'bg-white overflow-y-auto'
+                            )}>
+                                {previewLesson.type === 'video' ? (
+                                    previewLoading ? (
+                                        <div className="flex flex-col items-center gap-4 text-white/40">
+                                            <Loader2 className="animate-spin" size={32} />
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em]">Acquiring Token...</p>
+                                        </div>
+                                    ) : lessonVideoUrl ? (
+                                        <video
+                                            src={lessonVideoUrl}
+                                            controls
+                                            autoPlay
+                                            className="w-full h-full object-contain"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-4 text-white/40">
+                                            <AlertCircle size={48} className="opacity-20" />
+                                            <p className="text-[10px] font-semibold uppercase tracking-widest leading-loose text-center px-10">Stream unavailable. Verify instructor credentials and Cloudinary signature logic.</p>
+                                        </div>
+                                    )
+                                ) : previewLesson.type === 'reading' ? (
+                                    <div className="w-full h-full p-10 lg:p-12 overflow-y-auto">
+                                        <div className="flex items-center gap-2 text-[10px] font-semibold text-amber-600 uppercase tracking-widest mb-3">
+                                            <BookOpen size={14} /> Reading · {previewLesson.readingMinutes || 4} min
+                                        </div>
+                                        <h2 className="text-2xl font-semibold text-slate-900 tracking-tight mb-6">{previewLesson.title}</h2>
+                                        <article className="prose prose-slate max-w-none text-[15px] leading-relaxed font-medium text-slate-700 whitespace-pre-wrap">
+                                            {previewLesson.readingContent || <span className="text-slate-400 italic">No reading content provided.</span>}
+                                        </article>
                                     </div>
-                                ) : lessonVideoUrl ? (
-                                    <video 
-                                        src={lessonVideoUrl} 
-                                        controls 
-                                        autoPlay
-                                        className="w-full h-full object-contain"
-                                    />
+                                ) : previewLesson.type === 'assignment' ? (
+                                    <div className="w-full h-full p-10 lg:p-12 overflow-y-auto">
+                                        <div className="flex items-center gap-2 text-[10px] font-semibold text-emerald-600 uppercase tracking-widest mb-3">
+                                            <ClipboardList size={14} /> Practice assignment · {previewLesson.assignment?.questions?.length || 0} questions · max {previewLesson.assignment?.maxAttempts ?? 5} attempts · pass {previewLesson.assignment?.passingScore ?? 50}%
+                                        </div>
+                                        <h2 className="text-2xl font-semibold text-slate-900 tracking-tight mb-2">{previewLesson.title}</h2>
+                                        {previewLesson.assignment?.instructions && (
+                                            <p className="text-sm font-medium text-slate-600 mb-6 leading-relaxed">{previewLesson.assignment.instructions}</p>
+                                        )}
+                                        <div className="space-y-5">
+                                            {(previewLesson.assignment?.questions || []).map((q, qIdx) => {
+                                                const correctIdx = q.options?.findIndex(o => o.isCorrect);
+                                                return (
+                                                    <div key={qIdx} className="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-7 h-7 rounded-full bg-[#071739] text-white text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">{qIdx + 1}</div>
+                                                            <div className="flex-1">
+                                                                <p className="text-sm font-semibold text-slate-900 leading-snug">{q.questionText}</p>
+                                                                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mt-1">{q.marks || 1} mark{(q.marks || 1) === 1 ? '' : 's'}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2 pl-10 mt-3">
+                                                            {(q.options || []).map((o, oIdx) => (
+                                                                <div key={oIdx} className={clsx(
+                                                                    'flex items-center gap-2 p-2 rounded-lg text-sm font-medium border-2',
+                                                                    correctIdx === oIdx ? 'border-emerald-300 bg-emerald-50/60 text-emerald-800' : 'border-slate-100 text-slate-700'
+                                                                )}>
+                                                                    <span className={clsx(
+                                                                        'w-5 h-5 rounded-full flex items-center justify-center shrink-0',
+                                                                        correctIdx === oIdx ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-transparent'
+                                                                    )}>
+                                                                        {correctIdx === oIdx ? <Check size={12} /> : '·'}
+                                                                    </span>
+                                                                    <span>{o.text}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        {q.explanation && (
+                                                            <div className="mt-3 ml-10 px-3 py-2 bg-white border border-slate-100 rounded-lg">
+                                                                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#A68868] mb-1">Explanation</p>
+                                                                <p className="text-xs font-medium text-slate-700">{q.explanation}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            {(!previewLesson.assignment?.questions || previewLesson.assignment.questions.length === 0) && (
+                                                <p className="text-sm font-medium text-slate-400 italic">No questions added yet.</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="flex flex-col items-center gap-4 text-white/40">
-                                        <AlertCircle size={48} className="opacity-20" />
-                                        <p className="text-[10px] font-semibold uppercase tracking-widest leading-loose text-center px-10">Stream unavailable. Verify instructor credentials and Cloudinary signature logic.</p>
+                                        <Info size={48} className="opacity-20" />
+                                        <p className="text-[10px] font-semibold uppercase tracking-widest">Unknown lesson type</p>
                                     </div>
                                 )}
                             </div>

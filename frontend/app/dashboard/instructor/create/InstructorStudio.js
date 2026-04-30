@@ -57,12 +57,14 @@ export default function InstructorStudio({ courseId, initialData }) {
     tagline: '',
     whatYouWillLearn: [''],
     requirements: [''],
+    targetAudience: [''],
     language: 'English',
     status: 'draft',
     feedback: '',
     feedbackHistory: [],
     bulkLearn: '',
-    bulkReqs: ''
+    bulkReqs: '',
+    bulkAudience: ''
   });
 
   const [editingQuiz, setEditingQuiz] = useState(null); // { modId: string, quizId: string, data: object }
@@ -101,6 +103,7 @@ export default function InstructorStudio({ courseId, initialData }) {
             tagline: course.tagline || '',
             whatYouWillLearn: course.whatYouWillLearn?.length > 0 ? course.whatYouWillLearn : [''],
             requirements: course.requirements?.length > 0 ? course.requirements : [''],
+            targetAudience: course.targetAudience?.length > 0 ? course.targetAudience : [''],
             language: course.language || 'English',
             status: course.status || 'draft',
             feedback: course.feedback || '',
@@ -336,13 +339,37 @@ export default function InstructorStudio({ courseId, initialData }) {
   };
 
   const addModule = () => {
-    setModules([...modules, { id: Date.now().toString(), title: 'New Module', lessons: [], quizzes: [], attachments: [] }]);
+    setModules([...modules, {
+      id: Date.now().toString(),
+      title: `Module ${modules.length + 1}`,
+      lessons: [],
+      quizzes: [],
+      attachments: []
+    }]);
+  };
+
+  // Auto-number title per type within a module so adding multiple of the same kind
+  // gives "Reading 1", "Reading 2", "Reading 3" instead of three identical titles.
+  // We look at every existing item in the module (lessons + quizzes) and pick the
+  // next free number for that type.
+  const buildLessonTitle = (mod, type) => {
+    const baseLabel = type === 'reading' ? 'Reading'
+                    : type === 'assignment' ? 'Assignment'
+                    : 'Video Lesson';
+    const existing = (mod?.lessons || []).filter(l => (l.type || 'video') === type).length;
+    return `${baseLabel} ${existing + 1}`;
+  };
+
+  const buildQuizTitle = (mod) => {
+    const existing = (mod?.quizzes || []).length;
+    return `Quiz ${existing + 1}`;
   };
 
   const addLesson = (moduleId, type = 'video') => {
+    const targetMod = modules.find(m => m.id === moduleId);
     const baseLesson = {
       id: Date.now().toString(),
-      title: type === 'reading' ? 'New Reading' : type === 'assignment' ? 'New Assignment' : 'New Video Lesson',
+      title: buildLessonTitle(targetMod, type),
       type,
       videoUrl: '',
       readingContent: type === 'reading' ? '' : undefined,
@@ -807,7 +834,7 @@ export default function InstructorStudio({ courseId, initialData }) {
                     <div className="space-y-3">
                         {courseData.requirements.map((req, idx) => (
                             <div key={idx} className="flex gap-2">
-                                <input 
+                                <input
                                     type="text"
                                     value={req}
                                     onChange={(e) => {
@@ -819,7 +846,7 @@ export default function InstructorStudio({ courseId, initialData }) {
                                     className="flex-1 bg-slate-50 border-none rounded-xl p-3 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-[#071739]/10 transition-all"
                                 />
                                 {courseData.requirements.length > 1 && (
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => setCourseData({...courseData, requirements: courseData.requirements.filter((_, i) => i !== idx)})}
                                         className="text-slate-300 hover:text-rose-500"
@@ -829,6 +856,65 @@ export default function InstructorStudio({ courseId, initialData }) {
                         ))}
                     </div>
                   </div>
+
+                  {/* Who This Course Is For — same pattern as learning outcomes / requirements */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Who This Course Is For</label>
+                        <button
+                            type="button"
+                            onClick={() => setCourseData({...courseData, targetAudience: [...courseData.targetAudience, '']})}
+                            className="text-[10px] font-black text-[#071739] uppercase"
+                        >+ Add Audience Item</button>
+                    </div>
+                    <div className="mb-4">
+                        <textarea
+                            value={courseData.bulkAudience}
+                            onChange={(e) => setCourseData({...courseData, bulkAudience: e.target.value})}
+                            placeholder="Bulk Add: Paste audience descriptions here (one per line)..."
+                            className="w-full bg-slate-50 border-dashed border-2 border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-500 min-h-[80px] outline-none focus:ring-2 focus:ring-[#071739]/10 transition-all"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const items = courseData.bulkAudience.split('\n').map(r => r.trim()).filter(r => r);
+                                if (items.length > 0) {
+                                    setCourseData({
+                                        ...courseData,
+                                        targetAudience: [...courseData.targetAudience.filter(r => r), ...items],
+                                        bulkAudience: ''
+                                    });
+                                }
+                            }}
+                            className="mt-2 text-[10px] font-black bg-[#071739] text-white px-4 py-2 rounded-lg uppercase tracking-widest hover:opacity-90 transition-all"
+                        >Import Audience</button>
+                    </div>
+                    <div className="space-y-3">
+                        {courseData.targetAudience.map((aud, idx) => (
+                            <div key={idx} className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={aud}
+                                    onChange={(e) => {
+                                        const next = [...courseData.targetAudience];
+                                        next[idx] = e.target.value;
+                                        setCourseData({...courseData, targetAudience: next});
+                                    }}
+                                    placeholder="e.g. Beginners curious about Python; career switchers; product managers"
+                                    className="flex-1 bg-slate-50 border-none rounded-xl p-3 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-[#071739]/10 transition-all"
+                                />
+                                {courseData.targetAudience.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setCourseData({...courseData, targetAudience: courseData.targetAudience.filter((_, i) => i !== idx)})}
+                                        className="text-slate-300 hover:text-rose-500"
+                                    ><Trash2 size={16} /></button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                  </div>
+
                   <div className="space-y-6 pt-6 border-t border-slate-100">
                     <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">
@@ -992,13 +1078,20 @@ export default function InstructorStudio({ courseId, initialData }) {
                                           : (lesson.assignment?.questions?.length > 0);
                             return (
                              <div key={lesson.id} className="space-y-2">
-                               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-slate-200 hover:bg-white transition-all group/lesson">
+                               {/* Whole row is clickable — opens the LessonEditor for this lesson.
+                                   Title is still editable inline; we stop propagation on the input
+                                   so editing the name doesn't also open the modal. */}
+                               <div
+                                 onClick={() => setEditingLesson({ modId: mod.id, lessonId: lesson.id })}
+                                 className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-[#071739]/20 hover:bg-white transition-all group/lesson cursor-pointer"
+                               >
                                  <div className="flex items-center gap-4 min-w-0 flex-1">
                                     <div className="p-2 bg-white rounded-xl shadow-sm">
                                       <lessonMeta.Icon size={16} className={lessonMeta.color} />
                                     </div>
                                     <input
                                       value={lesson.title}
+                                      onClick={(e) => e.stopPropagation()}
                                       onChange={(e) => {
                                         const nextModules = [...modules];
                                         nextModules[mIdx].lessons[lIdx].title = e.target.value;
@@ -1006,48 +1099,19 @@ export default function InstructorStudio({ courseId, initialData }) {
                                       }}
                                       className="text-xs font-bold text-slate-700 bg-transparent outline-none focus:text-[#071739] flex-1 min-w-0"
                                     />
-                                    <span className={clsx(
-                                      "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0",
-                                      lesson.type === 'reading' ? 'bg-amber-100 text-amber-700'
-                                        : lesson.type === 'assignment' ? 'bg-emerald-100 text-emerald-700'
-                                        : 'bg-[#071739]/10 text-[#071739]'
-                                    )}>
-                                      {lessonMeta.label}
-                                    </span>
                                     {filled && (
                                       <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-1 shrink-0">
                                         <CheckCircle2 size={10} /> Ready
                                       </span>
                                     )}
                                  </div>
-                                 <div className="flex items-center gap-3 opacity-0 group-hover/lesson:opacity-100 transition-opacity shrink-0">
-                                    <button
-                                      onClick={() => setEditingLesson({ modId: mod.id, lessonId: lesson.id })}
-                                      className="flex items-center gap-1 text-[10px] font-black uppercase text-[#071739] border border-[#071739]/20 px-2.5 py-1 rounded-lg hover:bg-[#071739] hover:text-white transition-all"
-                                    >
-                                      <Edit2 size={12} /> Configure
-                                    </button>
-                                    {lesson.type === 'video' && (
-                                      <button
-                                        onClick={() => handleUpload(mod.id, lesson.id)}
-                                        className={`text-[10px] font-black uppercase ${lesson.videoUrl ? 'text-emerald-500' : 'text-[#071739]'}`}
-                                      >
-                                        {lesson.videoUrl ? 'Replace Video' : 'Upload Video'}
-                                      </button>
-                                    )}
-                                    <button
-                                      onClick={() => handleUpload(mod.id, lesson.id, 'attachment')}
-                                      className="flex items-center gap-1 text-[10px] font-black uppercase text-slate-400 hover:text-[#071739] border border-slate-100 px-2 py-1 rounded-lg hover:bg-slate-50 transition-all"
-                                    >
-                                      <Paperclip size={12} /> PDF
-                                    </button>
-                                    <button
-                                      onClick={() => deleteLesson(mod.id, lesson.id)}
-                                      className="text-slate-300 hover:text-red-500"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                 </div>
+                                 <button
+                                    onClick={(e) => { e.stopPropagation(); deleteLesson(mod.id, lesson.id); }}
+                                    className="text-slate-300 hover:text-rose-500 opacity-0 group-hover/lesson:opacity-100 transition-opacity shrink-0 ml-2"
+                                    title="Delete lesson"
+                                 >
+                                    <Trash2 size={14} />
+                                 </button>
                                </div>
                                
                                {/* Attachments List */}
@@ -1139,7 +1203,12 @@ export default function InstructorStudio({ courseId, initialData }) {
                              <button
                                 onClick={() => {
                                    const nextModules = [...modules];
-                                   const newQuiz = { id: Date.now().toString(), title: 'New Quiz', questions: [], randomize: true };
+                                   const newQuiz = {
+                                     id: Date.now().toString(),
+                                     title: buildQuizTitle(nextModules[mIdx]),
+                                     questions: [],
+                                     randomize: true
+                                   };
                                    if (!nextModules[mIdx].quizzes) nextModules[mIdx].quizzes = [];
                                    nextModules[mIdx].quizzes.push(newQuiz);
                                    setModules(nextModules);
