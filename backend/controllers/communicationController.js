@@ -6,6 +6,17 @@ const Announcement = require('../models/Announcement');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const User = require('../models/User');
+const { notifyUser } = require('../services/notify');
+
+// Build a deterministic conversationId for a (peer1, peer2) pair, optionally
+// scoped to a course. Course threads keep the legacy [course,a,b].sort().join('-')
+// format so existing data still loads. Direct threads use a 'direct-' prefix.
+function buildConversationId({ courseId, userA, userB }) {
+    if (courseId) {
+        return [String(courseId), String(userA), String(userB)].sort().join('-');
+    }
+    return 'direct-' + [String(userA), String(userB)].sort().join('-');
+}
 
 // @desc    Get all instructor's courses (Utility for dropdowns)
 // @route   GET /api/v1/communication/courses
@@ -107,28 +118,113 @@ exports.getMessages = async (req, res, next) => {
     }
 };
 
-// @desc    Send message
+// @desc    Send message (instructor → student, course-scoped or direct reply)
 // @route   POST /api/v1/communication/messages
 // @access  Private/Instructor
 exports.sendMessage = async (req, res, next) => {
     try {
         const { courseId, recipientId, text } = req.body;
-        
-        // Ensure student is enrolled in the course
-        const enrollment = await Enrollment.findOne({ course: courseId, student: recipientId });
-        if (!enrollment) return res.status(400).json({ success: false, message: 'Student not enrolled in this course' });
+        if (!recipientId || !text?.trim()) {
+            return res.status(400).json({ success: false, message: 'Recipient and text are required' });
+        }
 
-        const conversationId = [courseId, recipientId, req.user.id].sort().join('-');
+        // For course-scoped sends, keep the existing enrollment check.
+        // Direct replies (no courseId) skip the check — they're follow-ups to a thread
+        // the student themselves opened, so enrollment isn't required.
+        if (courseId) {
+            const enrollment = await Enrollment.findOne({ course: courseId, student: recipientId });
+            if (!enrollment) return res.status(400).json({ success: false, message: 'Student not enrolled in this course' });
+        }
+
+        const conversationId = buildConversationId({ courseId, userA: recipientId, userB: req.user.id });
 
         const message = await Message.create({
             conversationId,
-            course: courseId,
+            course: courseId || undefined,
+            kind: courseId ? 'course' : 'direct',
             sender: req.user.id,
             recipient: recipientId,
-            text
+            text: text.trim()
         });
 
+        // Drop a notification into the recipient's bell so they see the new message.
+        try {
+            const sender = await User.findById(req.user.id).select('name');
+            const link = courseId
+                ? `/dashboard/student/courses/${courseId}` // course-scoped — open the course thread
+                : `/dashboard/notifications`;             // direct — student can find it via notifications
+            await notifyUser({
+                recipient: recipientId,
+                type: 'new_message',
+                title: `New message from ${sender?.name || 'your instructor'}`,
+                message: text.length > 140 ? text.slice(0, 140) + '…' : text,
+                link,
+                entity: { type: 'message', id: message._id }
+            });
+        } catch (e) { /* best-effort notification; don't fail the send */ }
+
         res.status(201).json({ success: true, data: message });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+// @desc    List all threads for the logged-in instructor (course-scoped + direct)
+// @route   GET /api/v1/communication/threads
+// @access  Private/Instructor
+// Returns one entry per conversation peer, with last-message preview + unread count.
+exports.listThreads = async (req, res) => {
+    try {
+        const me = req.user.id;
+        // Pull every message that involves me, then collapse to one row per peer.
+        const messages = await Message.find({ $or: [{ sender: me }, { recipient: me }] })
+            .populate('sender', 'name email profilePhoto')
+            .populate('recipient', 'name email profilePhoto')
+            .populate('course', 'title')
+            .sort({ createdAt: -1 });
+
+        const byPeer = new Map();
+        for (const m of messages) {
+            const peerId = String(m.sender?._id) === String(me) ? String(m.recipient?._id) : String(m.sender?._id);
+            if (!peerId) continue;
+            // Group key: peer + course (course-scoped threads stay distinct from direct ones)
+            const key = `${peerId}__${m.course?._id || 'direct'}`;
+            if (byPeer.has(key)) continue; // already have most recent for this thread
+            const peer = String(m.sender?._id) === String(me) ? m.recipient : m.sender;
+            byPeer.set(key, {
+                conversationId: m.conversationId,
+                kind: m.kind || (m.course ? 'course' : 'direct'),
+                course: m.course || null,
+                peer: peer ? { _id: peer._id, name: peer.name, email: peer.email, profilePhoto: peer.profilePhoto } : null,
+                lastMessage: { text: m.text, createdAt: m.createdAt, fromMe: String(m.sender?._id) === String(me) }
+            });
+        }
+
+        // Compute unread count per thread (messages addressed to me, isRead false)
+        const threads = await Promise.all(Array.from(byPeer.values()).map(async (t) => {
+            const unread = await Message.countDocuments({ conversationId: t.conversationId, recipient: me, isRead: false });
+            return { ...t, unread };
+        }));
+
+        // Sort by last message timestamp desc
+        threads.sort((a, b) => new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt));
+
+        res.status(200).json({ success: true, data: threads });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+// @desc    Mark all messages in a conversation as read (for the current user)
+// @route   POST /api/v1/communication/threads/:conversationId/read
+// @access  Private/Instructor (or Student via student route — see below)
+exports.markThreadRead = async (req, res) => {
+    try {
+        await Message.updateMany(
+            { conversationId: req.params.conversationId, recipient: req.user.id, isRead: false },
+            { $set: { isRead: true } }
+        );
+        res.status(200).json({ success: true });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
     }

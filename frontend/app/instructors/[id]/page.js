@@ -1,14 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import api from '@/services/api';
-import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import InstructorProfile from '@/components/instructor/InstructorProfile';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ChevronLeft } from 'lucide-react';
 
 export default function InstructorProfilePage() {
     const params = useParams();
+    const router = useRouter();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -30,23 +30,34 @@ export default function InstructorProfilePage() {
 
     return (
         <div className="min-h-screen bg-white">
-            <Navbar />
-            <main className="max-w-7xl mx-auto px-6 pt-32">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 lg:pt-10 pb-12">
+                {/* Slim back button — replaces the heavy navbar */}
+                <button
+                    onClick={() => router.back()}
+                    className="mb-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500 hover:text-[#071739] transition-colors"
+                >
+                    <ChevronLeft size={14} /> Back
+                </button>
+
                 {loading ? (
-                    <div className="flex items-center justify-center min-h-[500px]">
-                        <Loader2 className="animate-spin text-primary" size={48} />
+                    <div className="flex flex-col items-center justify-center min-h-[500px] gap-3 text-slate-400">
+                        <Loader2 className="animate-spin text-[#071739]" size={32} />
+                        <p className="text-xs font-semibold uppercase tracking-widest">Loading instructor…</p>
                     </div>
                 ) : error ? (
-                    <div className="flex flex-col items-center justify-center min-h-[500px] text-center space-y-4">
-                        <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center">
-                            <AlertCircle size={40} />
+                    <div className="flex flex-col items-center justify-center min-h-[500px] text-center gap-4">
+                        <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center">
+                            <AlertCircle size={28} />
                         </div>
-                        <h2 className="text-2xl font-black text-slate-900">{error}</h2>
-                        <button 
-                            onClick={() => window.history.back()}
-                            className="px-8 py-3 bg-primary text-white rounded-xl font-bold"
+                        <div>
+                            <h2 className="text-xl font-semibold text-slate-900 tracking-tight">{error}</h2>
+                            <p className="text-sm font-medium text-slate-500 mt-1">The instructor you're looking for might have moved or been removed.</p>
+                        </div>
+                        <button
+                            onClick={() => router.back()}
+                            className="px-6 py-2.5 bg-[#071739] hover:bg-[#020a1a] text-white rounded-xl font-semibold text-xs uppercase tracking-widest"
                         >
-                            Go Back
+                            Go back
                         </button>
                     </div>
                 ) : (

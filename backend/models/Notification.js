@@ -30,6 +30,7 @@ const notificationSchema = new mongoose.Schema({
             'new_live_class',
             'new_coupon',
             'course_updated',
+            'new_message',
             'system'
         ]
     },

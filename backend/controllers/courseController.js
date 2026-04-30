@@ -451,21 +451,52 @@ exports.bulkSyncCourse = async (req, res, next) => {
                 const isNewLesson = lessonData.id.length < 20;
                 const lessonPayload = {
                     title: lessonData.title,
-                    videoUrl: lessonData.videoUrl,
-                    videoPublicId: lessonData.videoPublicId,
-                    videoAccessType: lessonData.videoAccessType,
-                    type: lessonData.type,
-                    attachments: lessonData.attachments,
+                    type: lessonData.type || 'video',
+                    attachments: lessonData.attachments || [],
+                    downloads: lessonData.downloads || [],
+                    notes: lessonData.notes || '',
+                    duration: lessonData.duration || 0,
+                    isFree: lessonData.isFree || false,
                     feedback: lessonData.feedback,
                     order: j,
                     module: moduleId
                 };
 
+                // Type-specific fields — only persist what the type uses, so Mongoose's
+                // pre-save guard doesn't have to clean up stale data.
+                if (lessonPayload.type === 'video') {
+                    lessonPayload.videoUrl = lessonData.videoUrl;
+                    lessonPayload.videoPublicId = lessonData.videoPublicId;
+                    lessonPayload.videoAccessType = lessonData.videoAccessType || 'upload';
+                    lessonPayload.readingContent = undefined;
+                    lessonPayload.assignment = undefined;
+                } else if (lessonPayload.type === 'reading') {
+                    lessonPayload.readingContent = lessonData.readingContent || '';
+                    lessonPayload.readingMinutes = lessonData.readingMinutes || 4;
+                    lessonPayload.videoUrl = undefined;
+                    lessonPayload.videoPublicId = undefined;
+                    lessonPayload.assignment = undefined;
+                } else if (lessonPayload.type === 'assignment') {
+                    lessonPayload.assignment = lessonData.assignment || { questions: [], maxAttempts: 5, passingScore: 50 };
+                    lessonPayload.videoUrl = undefined;
+                    lessonPayload.videoPublicId = undefined;
+                    lessonPayload.readingContent = undefined;
+                }
 
                 if (isNewLesson) {
                     await Lesson.create(lessonPayload);
                 } else {
-                    await Lesson.findByIdAndUpdate(lessonData.id, lessonPayload);
+                    // Use $unset for cleared fields so we don't leave stale data behind on type change.
+                    const updateOp = { $set: lessonPayload };
+                    const unset = {};
+                    Object.keys(lessonPayload).forEach(k => {
+                        if (lessonPayload[k] === undefined) {
+                            unset[k] = '';
+                            delete lessonPayload[k];
+                        }
+                    });
+                    if (Object.keys(unset).length > 0) updateOp.$unset = unset;
+                    await Lesson.findByIdAndUpdate(lessonData.id, updateOp, { runValidators: false });
                 }
             }
 

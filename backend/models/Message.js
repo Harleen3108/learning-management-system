@@ -5,10 +5,17 @@ const messageSchema = new mongoose.Schema({
         type: String, // format: "courseId-studentId-instructorId" or similar unique string
         required: true
     },
+    // Course-scoped messages tie a thread to a specific class. Direct messages
+    // (e.g. from a student visiting an instructor's public profile) leave this empty.
     course: {
         type: mongoose.Schema.ObjectId,
-        ref: 'Course',
-        required: true
+        ref: 'Course'
+    },
+    // 'course' = scoped to a course thread, 'direct' = free-form student↔instructor chat.
+    kind: {
+        type: String,
+        enum: ['course', 'direct'],
+        default: 'course'
     },
     sender: {
         type: mongoose.Schema.ObjectId,

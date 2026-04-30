@@ -1,11 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Video, 
-  FileText, 
-  GripVertical, 
-  Trash2, 
+import {
+  Plus,
+  Video,
+  FileText,
+  GripVertical,
+  Trash2,
   Save,
   Rocket,
   Loader2,
@@ -13,7 +13,10 @@ import {
   Paperclip,
   HelpCircle,
   AlertCircle,
-  Lock
+  Lock,
+  BookOpen,
+  ClipboardList,
+  Edit2
 } from 'lucide-react';
 import { Card } from '@/components/UIElements';
 import clsx from 'clsx';
@@ -22,6 +25,7 @@ import api from '@/services/api';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import QuizEditor from './QuizEditor';
+import LessonEditor from './LessonEditor';
 
 const CATEGORY_ICONS = {
     'Design': 'Palette',
@@ -62,6 +66,7 @@ export default function InstructorStudio({ courseId, initialData }) {
   });
 
   const [editingQuiz, setEditingQuiz] = useState(null); // { modId: string, quizId: string, data: object }
+  const [editingLesson, setEditingLesson] = useState(null); // { modId, lessonId }
 
   const [modules, setModules] = useState([
     {
@@ -114,6 +119,13 @@ export default function InstructorStudio({ courseId, initialData }) {
                 videoUrl: l.videoUrl || '',
                 videoPublicId: l.videoPublicId || '',
                 videoAccessType: l.videoAccessType || 'upload',
+                duration: l.duration || 0,
+                isFree: l.isFree || false,
+                readingContent: l.readingContent || '',
+                readingMinutes: l.readingMinutes || 4,
+                notes: l.notes || '',
+                downloads: l.downloads || [],
+                assignment: l.assignment || undefined,
                 attachments: l.attachments || []
               })),
               quizzes: (m.quizzes || []).map(q => ({
@@ -294,10 +306,19 @@ export default function InstructorStudio({ courseId, initialData }) {
         status,
         modules: modules.map(mod => ({
           ...mod,
-          lessons: mod.lessons.map(lesson => ({
-            ...lesson,
-            videoUrl: lesson.videoUrl || 'https://placeholder.com/video'
-          }))
+          lessons: mod.lessons.map(lesson => {
+            // Only force a placeholder URL for video lessons that haven't been filled yet.
+            // Reading/assignment lessons must NOT carry a video URL — the schema rejects it.
+            const out = { ...lesson };
+            if (lesson.type === 'video') {
+              out.videoUrl = lesson.videoUrl || 'https://placeholder.com/video';
+            } else {
+              delete out.videoUrl;
+              delete out.videoPublicId;
+              delete out.videoAccessType;
+            }
+            return out;
+          })
         }))
       };
 
@@ -318,12 +339,68 @@ export default function InstructorStudio({ courseId, initialData }) {
     setModules([...modules, { id: Date.now().toString(), title: 'New Module', lessons: [], quizzes: [], attachments: [] }]);
   };
 
-  const addLesson = (moduleId) => {
-    setModules(modules.map(mod => 
-      mod.id === moduleId 
-      ? { ...mod, lessons: [...mod.lessons, { id: Date.now().toString(), title: 'New Lesson', type: 'video', videoUrl: '', attachments: [] }] }
-      : mod
+  const addLesson = (moduleId, type = 'video') => {
+    const baseLesson = {
+      id: Date.now().toString(),
+      title: type === 'reading' ? 'New Reading' : type === 'assignment' ? 'New Assignment' : 'New Video Lesson',
+      type,
+      videoUrl: '',
+      readingContent: type === 'reading' ? '' : undefined,
+      readingMinutes: type === 'reading' ? 4 : undefined,
+      notes: '',
+      downloads: [],
+      attachments: [],
+      assignment: type === 'assignment'
+        ? { instructions: '', questions: [], maxAttempts: 5, passingScore: 50 }
+        : undefined
+    };
+    setModules(prev => prev.map(mod =>
+      mod.id === moduleId ? { ...mod, lessons: [...mod.lessons, baseLesson] } : mod
     ));
+    // Open the editor immediately so the instructor can fill in content.
+    setEditingLesson({ modId: moduleId, lessonId: baseLesson.id });
+  };
+
+  const handleLessonSave = (updatedLesson) => {
+    setModules(prev => prev.map(mod =>
+      mod.id === editingLesson.modId
+        ? { ...mod, lessons: mod.lessons.map(l => l.id === editingLesson.lessonId ? { ...l, ...updatedLesson } : l) }
+        : mod
+    ));
+    setEditingLesson(null);
+  };
+
+  // Cloudinary helper that fits the LessonEditor callback signature.
+  // The editor passes a callback: (url, publicIdOrName) => void
+  const triggerLessonUpload = (kind) => (cb) => {
+    if (typeof window === 'undefined' || !window.cloudinary) return;
+    const widget = window.cloudinary.createUploadWidget(
+      {
+        cloudName: 'dtadnrc7n',
+        apiKey: '116434844277175',
+        uploadSignature: async (callback, params_to_sign) => {
+          try {
+            const res = await api.post('/courses/upload-signature', { paramsToSign: params_to_sign });
+            callback(res.data.data.signature);
+          } catch (err) { console.error('Signature fetch failed:', err); }
+        },
+        uploadPreset: 'ml_default',
+        type: 'upload',
+        resourceType: kind === 'video' ? 'video' : 'auto',
+        maxVideoFileSize: 3221225472,
+        chunkSize: 10000000,
+        sources: ['local', 'url'],
+      },
+      (error, result) => {
+        if (!error && result && result.event === 'success') {
+          const url = result.info.secure_url;
+          const publicId = result.info.public_id;
+          const originalName = result.info.original_filename || 'Resource';
+          cb(url, kind === 'video' ? publicId : originalName);
+        }
+      }
+    );
+    widget.open();
   };
 
   const deleteModule = async (modId) => {
@@ -902,37 +979,69 @@ export default function InstructorStudio({ courseId, initialData }) {
 
                        <div className="space-y-3">
                           {/* Lessons Mapping */}
-                          {mod.lessons.map((lesson, lIdx) => (
+                          {mod.lessons.map((lesson, lIdx) => {
+                            // Pick icon + colour by lesson type
+                            const lessonMeta = lesson.type === 'reading'
+                              ? { Icon: BookOpen, color: 'text-amber-600', label: 'Reading' }
+                              : lesson.type === 'assignment'
+                                ? { Icon: ClipboardList, color: 'text-emerald-600', label: 'Assignment' }
+                                : { Icon: Video, color: 'text-[#071739]', label: 'Video' };
+                            // "Filled in" means the type-specific content exists
+                            const filled = lesson.type === 'video' ? !!lesson.videoUrl
+                                          : lesson.type === 'reading' ? !!lesson.readingContent
+                                          : (lesson.assignment?.questions?.length > 0);
+                            return (
                              <div key={lesson.id} className="space-y-2">
                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-slate-200 hover:bg-white transition-all group/lesson">
-                                 <div className="flex items-center gap-4">
+                                 <div className="flex items-center gap-4 min-w-0 flex-1">
                                     <div className="p-2 bg-white rounded-xl shadow-sm">
-                                      {lesson.type === 'video' ? <Video size={16} className="text-[#071739]" /> : <FileText size={16} className="text-slate-400" />}
+                                      <lessonMeta.Icon size={16} className={lessonMeta.color} />
                                     </div>
-                                    <input 
-                                      value={lesson.title} 
+                                    <input
+                                      value={lesson.title}
                                       onChange={(e) => {
                                         const nextModules = [...modules];
                                         nextModules[mIdx].lessons[lIdx].title = e.target.value;
                                         setModules(nextModules);
                                       }}
-                                      className="text-xs font-bold text-slate-700 bg-transparent outline-none focus:text-[#071739] w-64"
+                                      className="text-xs font-bold text-slate-700 bg-transparent outline-none focus:text-[#071739] flex-1 min-w-0"
                                     />
+                                    <span className={clsx(
+                                      "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0",
+                                      lesson.type === 'reading' ? 'bg-amber-100 text-amber-700'
+                                        : lesson.type === 'assignment' ? 'bg-emerald-100 text-emerald-700'
+                                        : 'bg-[#071739]/10 text-[#071739]'
+                                    )}>
+                                      {lessonMeta.label}
+                                    </span>
+                                    {filled && (
+                                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-1 shrink-0">
+                                        <CheckCircle2 size={10} /> Ready
+                                      </span>
+                                    )}
                                  </div>
-                                 <div className="flex items-center gap-3 opacity-0 group-hover/lesson:opacity-100 transition-opacity">
-                                    <button 
-                                      onClick={() => handleUpload(mod.id, lesson.id)}
-                                      className={`text-[10px] font-black uppercase ${lesson.videoUrl ? 'text-emerald-500' : 'text-[#071739]'}`}
+                                 <div className="flex items-center gap-3 opacity-0 group-hover/lesson:opacity-100 transition-opacity shrink-0">
+                                    <button
+                                      onClick={() => setEditingLesson({ modId: mod.id, lessonId: lesson.id })}
+                                      className="flex items-center gap-1 text-[10px] font-black uppercase text-[#071739] border border-[#071739]/20 px-2.5 py-1 rounded-lg hover:bg-[#071739] hover:text-white transition-all"
                                     >
-                                      {lesson.videoUrl ? 'Video Uploaded' : 'Upload Video'}
+                                      <Edit2 size={12} /> Configure
                                     </button>
-                                    <button 
+                                    {lesson.type === 'video' && (
+                                      <button
+                                        onClick={() => handleUpload(mod.id, lesson.id)}
+                                        className={`text-[10px] font-black uppercase ${lesson.videoUrl ? 'text-emerald-500' : 'text-[#071739]'}`}
+                                      >
+                                        {lesson.videoUrl ? 'Replace Video' : 'Upload Video'}
+                                      </button>
+                                    )}
+                                    <button
                                       onClick={() => handleUpload(mod.id, lesson.id, 'attachment')}
                                       className="flex items-center gap-1 text-[10px] font-black uppercase text-slate-400 hover:text-[#071739] border border-slate-100 px-2 py-1 rounded-lg hover:bg-slate-50 transition-all"
                                     >
-                                      <Paperclip size={12} /> Add PDF / Notes
+                                      <Paperclip size={12} /> PDF
                                     </button>
-                                    <button 
+                                    <button
                                       onClick={() => deleteLesson(mod.id, lesson.id)}
                                       className="text-slate-300 hover:text-red-500"
                                     >
@@ -971,7 +1080,8 @@ export default function InstructorStudio({ courseId, initialData }) {
                                  </div>
                                )}
                              </div>
-                          ))}
+                            );
+                          })}
 
                           {/* Quizzes Mapping */}
                           {mod.quizzes && mod.quizzes.map((quiz, qIdx) => (
@@ -1007,14 +1117,26 @@ export default function InstructorStudio({ courseId, initialData }) {
                             </div>
                           ))}
 
-                          <div className="flex gap-3 pt-2">
-                             <button 
-                                onClick={() => addLesson(mod.id)}
-                                className="flex-1 py-4 border-2 border-dashed border-slate-100 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:border-blue-100 hover:text-blue-600 transition-all flex items-center justify-center gap-2"
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                             <button
+                                onClick={() => addLesson(mod.id, 'video')}
+                                className="py-3 border-2 border-dashed border-slate-100 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:border-[#071739]/30 hover:text-[#071739] transition-all flex items-center justify-center gap-2"
                              >
-                                <Plus size={14} /> Add Lesson
+                                <Video size={12} /> Video
                              </button>
-                             <button 
+                             <button
+                                onClick={() => addLesson(mod.id, 'reading')}
+                                className="py-3 border-2 border-dashed border-amber-100 rounded-2xl text-[10px] font-black text-amber-400 uppercase tracking-widest hover:border-amber-300 hover:text-amber-600 transition-all flex items-center justify-center gap-2"
+                             >
+                                <BookOpen size={12} /> Reading
+                             </button>
+                             <button
+                                onClick={() => addLesson(mod.id, 'assignment')}
+                                className="py-3 border-2 border-dashed border-emerald-100 rounded-2xl text-[10px] font-black text-emerald-400 uppercase tracking-widest hover:border-emerald-300 hover:text-emerald-600 transition-all flex items-center justify-center gap-2"
+                             >
+                                <ClipboardList size={12} /> Assignment
+                             </button>
+                             <button
                                 onClick={() => {
                                    const nextModules = [...modules];
                                    const newQuiz = { id: Date.now().toString(), title: 'New Quiz', questions: [], randomize: true };
@@ -1022,9 +1144,9 @@ export default function InstructorStudio({ courseId, initialData }) {
                                    nextModules[mIdx].quizzes.push(newQuiz);
                                    setModules(nextModules);
                                 }}
-                                className="flex-1 py-4 border-2 border-dashed border-amber-100 rounded-2xl text-[10px] font-black text-amber-400 uppercase tracking-widest hover:border-amber-200 hover:text-amber-600 transition-all flex items-center justify-center gap-2"
+                                className="py-3 border-2 border-dashed border-blue-100 rounded-2xl text-[10px] font-black text-blue-400 uppercase tracking-widest hover:border-blue-300 hover:text-blue-600 transition-all flex items-center justify-center gap-2"
                              >
-                                <Plus size={14} /> Add Quiz
+                                <HelpCircle size={12} /> Quiz
                              </button>
                           </div>
                        </div>
@@ -1037,12 +1159,29 @@ export default function InstructorStudio({ courseId, initialData }) {
           <div className="space-y-8">
              {/* Quiz Editor Modal */}
              {editingQuiz && (
-               <QuizEditor 
+               <QuizEditor
                   quiz={editingQuiz.data}
                   onSave={handleQuizUpdate}
                   onClose={() => setEditingQuiz(null)}
                />
              )}
+
+             {/* Lesson Editor Modal */}
+             {editingLesson && (() => {
+                const mod = modules.find(m => m.id === editingLesson.modId);
+                const lesson = mod?.lessons.find(l => l.id === editingLesson.lessonId);
+                if (!lesson) return null;
+                return (
+                  <LessonEditor
+                    lesson={lesson}
+                    onClose={() => setEditingLesson(null)}
+                    onSave={handleLessonSave}
+                    onUploadVideo={triggerLessonUpload('video')}
+                    onUploadDownload={triggerLessonUpload('attachment')}
+                    onUploadAttachment={triggerLessonUpload('attachment')}
+                  />
+                );
+             })()}
 
              <Card className="p-8">
                 <h4 className="font-bold text-slate-900 text-sm mb-6">Course Preview</h4>

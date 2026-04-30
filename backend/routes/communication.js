@@ -6,6 +6,8 @@ const {
     getCourseStudents,
     getMessages,
     sendMessage,
+    listThreads,
+    markThreadRead,
     createAssignment,
     getAssignments,
     updateAssignment,
@@ -34,6 +36,9 @@ router.post('/qna/:id/reply', replyToQuestion);
 router.route('/messages')
     .get(getMessages)
     .post(sendMessage);
+
+router.get('/threads', listThreads);
+router.post('/threads/:conversationId/read', markThreadRead);
 
 router.route('/assignments')
     .get(getAssignments)

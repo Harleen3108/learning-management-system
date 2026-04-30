@@ -30,6 +30,8 @@ import {
 import { Card } from '@/components/UIElements';
 import DashboardLayout from '@/components/DashboardLayout';
 import QuizTaker from '@/components/QuizTaker';
+import AssignmentRunner from '@/components/AssignmentRunner';
+import { BookOpen, ClipboardList, Check } from 'lucide-react';
 import api from '@/services/api';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -125,24 +127,27 @@ export default function LearningPage({ params, onBack }) {
             for (const mod of courseData.modules) {
                 const lesson = mod.lessons.find(l => l._id === lastUpdated.lesson);
                 if (lesson) {
-                    setActiveItem({ 
-                        type: 'video', 
-                        data: lesson, 
+                    setActiveItem({
+                        type: lesson.type || 'video',
+                        data: lesson,
                         moduleTitle: mod.title,
-                        startTime: lastUpdated.lastWatchedTime 
+                        startTime: lastUpdated.lastWatchedTime
                     });
                     found = true;
                     break;
                 }
             }
             if (!found && courseData.modules?.[0]?.lessons?.[0]) {
-                setActiveItem({ type: 'video', data: courseData.modules[0].lessons[0], moduleTitle: courseData.modules[0].title });
+                const first = courseData.modules[0].lessons[0];
+                setActiveItem({ type: first.type || 'video', data: first, moduleTitle: courseData.modules[0].title });
             }
         } else if (courseData.modules?.[0]?.lessons?.[0]) {
-            setActiveItem({ type: 'video', data: courseData.modules[0].lessons[0], moduleTitle: courseData.modules[0].title });
+            const first = courseData.modules[0].lessons[0];
+            setActiveItem({ type: first.type || 'video', data: first, moduleTitle: courseData.modules[0].title });
         }
       } else if (courseData.modules?.[0]?.lessons?.[0]) {
-        setActiveItem({ type: 'video', data: courseData.modules[0].lessons[0], moduleTitle: courseData.modules[0].title });
+        const first = courseData.modules[0].lessons[0];
+        setActiveItem({ type: first.type || 'video', data: first, moduleTitle: courseData.modules[0].title });
       }
 
       // Default expand the first module
@@ -245,24 +250,35 @@ export default function LearningPage({ params, onBack }) {
     }
   };
 
-  const handleMarkAsComplete = async (lessonId) => {
+  const handleMarkAsComplete = async (lessonId, opts = {}) => {
     if (!isEnrolled) return;
+    const targetId = lessonId || activeItem?.data?._id;
+    if (!targetId) return;
     try {
-        await api.post('/student/progress', {
-            courseId: params.id,
-            lessonId: lessonId || activeItem.data._id,
-            isCompleted: true
-        });
+        // For reading lessons we use the dedicated endpoint so the server flips markedAsRead too
+        if (opts.kind === 'reading') {
+            await api.post(`/student/progress/${targetId}/mark-read`);
+        } else {
+            await api.post('/student/progress', {
+                courseId: params.id,
+                lessonId: targetId,
+                isCompleted: true
+            });
+        }
         // Update local state
         setUserProgress(prev => {
-            const existing = prev.find(p => p.lesson === (lessonId || activeItem.data._id));
+            const existing = prev.find(p => p.lesson === targetId);
             if (existing) {
-                return prev.map(p => p.lesson === (lessonId || activeItem.data._id) ? { ...p, isCompleted: true } : p);
+                return prev.map(p => p.lesson === targetId ? { ...p, isCompleted: true } : p);
             }
-            return [...prev, { lesson: (lessonId || activeItem.data._id), isCompleted: true }];
+            return [...prev, { lesson: targetId, isCompleted: true }];
         });
+        // Auto-advance unless caller opts out (e.g. on video natural-end we prefer not to jump)
+        if (opts.autoAdvance) {
+            setTimeout(() => goToNext(), 300);
+        }
     } catch (err) {
-        console.error('Failed to mark as complete');
+        console.error('Failed to mark as complete', err);
     }
   };
 
@@ -353,12 +369,13 @@ export default function LearningPage({ params, onBack }) {
   if (!course) return <div className="p-20 text-center font-semibold text-slate-400">Course not found.</div>;
 
   // Flatten the curriculum into a sequential array for next/prev navigation.
+  // Each lesson's type drives how the player renders it: 'video' | 'reading' | 'assignment'.
   const flatCurriculum = (() => {
     const out = [];
     course.modules.forEach(m => {
       (m.attachments || []).forEach(a => out.push({ type: 'pdf', data: a, moduleTitle: m.title, _key: `mod-${m._id}-att-${a.url}` }));
       (m.lessons || []).forEach(l => {
-        out.push({ type: 'video', data: l, moduleTitle: m.title, _key: `lesson-${l._id}` });
+        out.push({ type: l.type || 'video', data: l, moduleTitle: m.title, _key: `lesson-${l._id}` });
         (l.attachments || []).forEach(a => out.push({ type: 'pdf', data: a, moduleTitle: m.title, _key: `lesson-${l._id}-att-${a.url}` }));
       });
       (m.quizzes || []).forEach(q => out.push({ type: 'quiz', data: q, moduleTitle: m.title, _key: `quiz-${q._id}` }));
@@ -397,8 +414,15 @@ export default function LearningPage({ params, onBack }) {
   // ────────────────────────────────────────────────────────────────────
   // Player block — shared between desktop and mobile renderings
   // ────────────────────────────────────────────────────────────────────
+  // Reading and assignment lessons use a different container — they're document-like content,
+  // not a video aspect ratio. Build a flexible wrapper that switches between aspects.
+  const isMediaLesson = activeItem?.type === 'video' || activeItem?.type === 'pdf' || activeItem?.type === 'quiz';
+
   const playerBlock = (
-    <div className="aspect-video w-full bg-black rounded-2xl overflow-hidden shadow-xl shadow-slate-900/20 relative">
+    <div className={clsx(
+      'w-full bg-white rounded-2xl overflow-hidden shadow-xl shadow-slate-900/20 relative',
+      isMediaLesson ? 'aspect-video bg-black' : 'min-h-[60vh]'
+    )}>
       {activeItem?.type === 'video' ? (
         isEnrolled && currentVideoUrl ? (
           (videoProvider === 'youtube' || videoProvider === 'vimeo') ? (
@@ -419,7 +443,7 @@ export default function LearningPage({ params, onBack }) {
               controlsList="nodownload"
               playsInline
               onTimeUpdate={handleTimeUpdate}
-              onEnded={() => handleMarkAsComplete()}
+              onEnded={() => handleMarkAsComplete(activeItem.data._id, { autoAdvance: true })}
               onError={() => setVideoError('This video failed to load. The link may have expired or the format is unsupported.')}
               onLoadedMetadata={() => {
                 if (activeItem.startTime && videoRef.current) {
@@ -484,6 +508,71 @@ export default function LearningPage({ params, onBack }) {
       ) : activeItem?.type === 'quiz' ? (
         <div className="bg-white w-full h-full overflow-y-auto">
           <QuizTaker quiz={activeItem?.data} onComplete={() => setActiveTab('overview')} />
+        </div>
+      ) : activeItem?.type === 'reading' ? (
+        <div className="w-full h-full bg-white flex flex-col overflow-y-auto">
+          <div className="px-6 md:px-10 py-8 max-w-3xl mx-auto w-full">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#A68868] mb-2">{moduleTitle} • Reading</p>
+            <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 tracking-tight leading-tight">{activeItem.data.title}</h2>
+            <p className="text-xs text-slate-400 font-medium mt-2">{activeItem.data.readingMinutes || 4} min read</p>
+            {/* Body — supports markdown-ish rendering via plain prose */}
+            <article className="prose prose-slate max-w-none mt-8 text-[15px] leading-relaxed font-medium text-slate-700 whitespace-pre-wrap">
+              {activeItem.data.readingContent || 'No reading content yet.'}
+            </article>
+            <div className="mt-10 pt-6 border-t border-slate-100 flex items-center justify-between gap-3">
+              <button
+                onClick={goToPrev}
+                className="px-4 py-2.5 text-slate-500 font-semibold text-xs uppercase tracking-widest hover:bg-slate-50 rounded-xl"
+              >
+                Previous
+              </button>
+              {isLessonCompleted(activeItem.data._id) ? (
+                <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl font-semibold text-xs uppercase tracking-widest">
+                  <CheckCircle2 size={13} /> Completed
+                </span>
+              ) : (
+                <button
+                  onClick={() => isEnrolled && handleMarkAsComplete(activeItem.data._id, { kind: 'reading', autoAdvance: true })}
+                  disabled={!isEnrolled}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#071739] hover:bg-[#020a1a] text-white rounded-xl font-semibold text-xs uppercase tracking-widest disabled:opacity-50"
+                >
+                  <Check size={13} /> Mark as completed
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : activeItem?.type === 'assignment' ? (
+        <div className="w-full h-full bg-white overflow-y-auto">
+          {isEnrolled ? (
+            <AssignmentRunner
+              key={activeItem.data._id}
+              lesson={activeItem.data}
+              onComplete={({ passed }) => {
+                // Reflect completion in the curriculum sidebar locally + auto-advance after a beat
+                setUserProgress(prev => {
+                  const existing = prev.find(p => p.lesson === activeItem.data._id);
+                  if (existing) {
+                    return prev.map(p => p.lesson === activeItem.data._id ? { ...p, isCompleted: true } : p);
+                  }
+                  return [...prev, { lesson: activeItem.data._id, isCompleted: true }];
+                });
+                if (passed) setTimeout(() => goToNext(), 1500);
+              }}
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-center px-6 py-20">
+              <Lock size={32} className="text-slate-300 mb-3" />
+              <p className="text-sm font-semibold text-slate-700">Enroll to take this assignment</p>
+              <button
+                onClick={handleEnrollFromPlayer}
+                disabled={enrolling}
+                className="mt-4 px-6 py-2.5 bg-[#071739] hover:bg-[#020a1a] text-white rounded-xl font-semibold text-xs uppercase tracking-widest"
+              >
+                {enrolling ? 'Processing…' : 'Enroll Now'}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center text-slate-400 font-semibold">
@@ -573,14 +662,31 @@ export default function LearningPage({ params, onBack }) {
 
                     {/* Lessons */}
                     {(mod.lessons || []).map((lesson, lIdx) => {
-                      const isActive = activeItem?.type === 'video' && activeItem?.data?._id === lesson._id;
+                      const lessonType = lesson.type || 'video';
+                      const isActive = activeItem?.data?._id === lesson._id && (
+                        activeItem?.type === lessonType
+                        || (activeItem?.type === 'video' && lessonType === 'video')
+                      );
                       const completed = isLessonCompleted(lesson._id);
+                      // Per-type icon + label
+                      const TypeIcon = lessonType === 'reading' ? BookOpen
+                                      : lessonType === 'assignment' ? ClipboardList
+                                      : PlayCircle;
+                      const typeLabel = lessonType === 'reading' ? 'Reading'
+                                      : lessonType === 'assignment' ? 'Practice'
+                                      : 'Video';
+                      // Subtitle: minutes for reading, duration for video, "X questions" for assignment
+                      const subtitle = lessonType === 'reading'
+                        ? `Reading • ${lesson.readingMinutes || 4} min`
+                        : lessonType === 'assignment'
+                          ? `Practice • ${lesson.assignment?.questions?.length || 0} questions`
+                          : (lesson.duration ? `${Math.floor(lesson.duration / 60)}:${String(lesson.duration % 60).padStart(2, '0')}` : null);
                       return (
                         <React.Fragment key={lesson._id}>
                           <button
                             onClick={() => {
                               setActiveItem({
-                                type: 'video',
+                                type: lessonType,
                                 data: lesson,
                                 moduleTitle: mod.title,
                                 startTime: userProgress.find(p => p.lesson === lesson._id)?.lastWatchedTime || 0
@@ -596,16 +702,14 @@ export default function LearningPage({ params, onBack }) {
                               "w-7 h-7 rounded-full flex items-center justify-center shrink-0",
                               completed ? "bg-emerald-100 text-emerald-600" : isActive ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"
                             )}>
-                              {completed ? <CheckCircle2 size={13} /> : <PlayCircle size={14} />}
+                              {completed ? <CheckCircle2 size={13} /> : <TypeIcon size={13} />}
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className={clsx("text-[12px] font-semibold leading-tight truncate", isActive ? "text-blue-700" : "text-slate-800")}>
                                 {lIdx + 1}. {lesson.title}
                               </p>
-                              {lesson.duration && (
-                                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                                  {Math.floor(lesson.duration / 60)}:{String(lesson.duration % 60).padStart(2, '0')}
-                                </p>
+                              {subtitle && (
+                                <p className="text-[10px] text-slate-400 font-medium mt-0.5">{subtitle}</p>
                               )}
                             </div>
                           </button>
@@ -974,6 +1078,15 @@ export default function LearningPage({ params, onBack }) {
                     {/* NOTES TAB */}
                     {activeTab === 'notes' && (
                       <div className="space-y-5">
+                        {/* Instructor notes shown above the student's own notes */}
+                        {activeItem?.data?.notes && (
+                          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#A68868] mb-2">From the instructor</p>
+                            <p className="text-sm font-medium text-slate-700 leading-relaxed whitespace-pre-wrap">
+                              {activeItem.data.notes}
+                            </p>
+                          </div>
+                        )}
                         {isEnrolled && activeItem?.type === 'video' && (
                           <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 border-dashed">
                             <div className="flex items-center justify-between mb-3">
@@ -1019,29 +1132,41 @@ export default function LearningPage({ params, onBack }) {
                       </div>
                     )}
 
-                    {/* RESOURCES TAB */}
-                    {activeTab === 'resources' && (
-                      <div>
-                        {activeItem?.data?.attachments?.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {activeItem.data.attachments.map((file, idx) => (
-                              <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-slate-100 rounded-xl p-4 flex items-center justify-between hover:border-blue-200 transition-all">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0"><Download size={16} /></div>
-                                  <span className="font-semibold text-slate-700 text-sm truncate">{file.name || `Attachment ${idx + 1}`}</span>
-                                </div>
-                                <ArrowRight size={14} className="text-slate-300 shrink-0" />
-                              </a>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12 text-slate-400">
-                            <Info size={36} className="mx-auto mb-3 opacity-30" />
-                            <p className="text-sm font-semibold">No attachments for this lesson.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* RESOURCES / DOWNLOADS TAB */}
+                    {activeTab === 'resources' && (() => {
+                      // Combine attachments + downloads into one list, deduped by URL.
+                      const merged = [
+                        ...(activeItem?.data?.attachments || []),
+                        ...(activeItem?.data?.downloads || [])
+                      ];
+                      const seen = new Set();
+                      const items = merged.filter(f => {
+                        if (!f?.url || seen.has(f.url)) return false;
+                        seen.add(f.url); return true;
+                      });
+                      return (
+                        <div>
+                          {items.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {items.map((file, idx) => (
+                                <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-slate-100 rounded-xl p-4 flex items-center justify-between hover:border-blue-200 transition-all">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0"><Download size={16} /></div>
+                                    <span className="font-semibold text-slate-700 text-sm truncate">{file.name || `Resource ${idx + 1}`}</span>
+                                  </div>
+                                  <ArrowRight size={14} className="text-slate-300 shrink-0" />
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-12 text-slate-400">
+                              <Info size={36} className="mx-auto mb-3 opacity-30" />
+                              <p className="text-sm font-semibold">No downloads for this lesson.</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </main>
