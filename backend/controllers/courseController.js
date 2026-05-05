@@ -731,15 +731,18 @@ exports.getCourseAuditHistory = async (req, res, next) => {
         res.status(400).json({ success: false, message: err.message });
     }
 };
-// @desc    Get trending courses (Top 4 by revenue)
+// @desc    Get trending courses (default top 6 by revenue, override with ?limit=)
 // @route   GET /api/v1/courses/trending
 // @access  Public
 exports.getTrendingCourses = async (req, res, next) => {
     try {
+        // Caller can request a different count, e.g. /trending?limit=8 — capped to 24 to be safe.
+        const limit = Math.min(24, Math.max(1, Number(req.query.limit) || 6));
+
         const trending = await Enrollment.aggregate([
             { $group: { _id: '$course', totalRevenue: { $sum: '$amount' }, enrollments: { $sum: 1 } } },
             { $sort: { totalRevenue: -1 } },
-            { $limit: 4 },
+            { $limit: limit },
             {
                 $lookup: {
                     from: 'courses',
@@ -749,6 +752,8 @@ exports.getTrendingCourses = async (req, res, next) => {
                 }
             },
             { $unwind: '$courseInfo' },
+            // Only surface published courses — drafts/pending shouldn't leak via this endpoint.
+            { $match: { 'courseInfo.status': 'published' } },
             {
                 $lookup: {
                     from: 'users',
@@ -779,12 +784,26 @@ exports.getTrendingCourses = async (req, res, next) => {
                 enrollments: t.enrollments
             }));
         } else {
-            // Fallback: Get top 4 rated/latest courses if no sales data exists yet
+            // Fallback: top-rated / newest published courses if no sales data exists yet.
             data = await Course.find({ status: 'published' })
                 .sort('-averageRating -createdAt')
-                .limit(4)
+                .limit(limit)
                 .populate('instructor', 'name')
                 .populate('category', 'name');
+        }
+
+        // If revenue-based picks didn't fill the slots (small dataset), top up from newest published.
+        if (data.length < limit) {
+            const haveIds = new Set(data.map(c => String(c._id)));
+            const filler = await Course.find({
+                status: 'published',
+                _id: { $nin: Array.from(haveIds) }
+            })
+                .sort('-averageRating -createdAt')
+                .limit(limit - data.length)
+                .populate('instructor', 'name')
+                .populate('category', 'name');
+            data = [...data, ...filler.map(c => c.toObject())];
         }
 
         res.status(200).json({ success: true, data });

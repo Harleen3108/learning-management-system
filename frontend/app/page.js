@@ -126,6 +126,79 @@ export default function Home() {
 
       </section>
 
+      {/* ─── MOBILE-ONLY Trending Courses — sits right under the hero on small screens.
+            Desktop sees the bigger version further down in its original position. ─── */}
+      <section className="lg:hidden bg-white pt-8 pb-6">
+        <div className="px-4 mb-5 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#A68868] mb-1">Trending now</p>
+                <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Most popular courses</h2>
+            </div>
+            <Link href="/explore" className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-[#071739] inline-flex items-center gap-1">
+                See all <ArrowRight size={12} />
+            </Link>
+        </div>
+
+        {/* Horizontal scroller. -mx-4 + px-4 lets first/last cards align with the page edge,
+            while still giving them breathing room when scrolled to the start/end. */}
+        <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-3 snap-x snap-mandatory">
+            {trendingCourses.length > 0 ? trendingCourses.map(course => {
+                const list = Number(course.price) || 0;
+                const disc = Number(course.discountPrice) || 0;
+                const showOriginal = disc > 0 && disc < list;
+                const finalPrice = disc > 0 ? disc : list;
+                const rating = Number(course.averageRating || 0);
+                return (
+                    <Link
+                        key={course._id}
+                        href={`/dashboard/courses/${course._id}`}
+                        className="snap-start shrink-0 w-[230px] bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all"
+                    >
+                        <div className="aspect-[16/10] bg-slate-100 overflow-hidden">
+                            <img
+                                src={course.thumbnail || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=600'}
+                                alt={course.title}
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
+                        <div className="p-3">
+                            <h3 className="text-sm font-semibold text-slate-900 leading-tight line-clamp-2 mb-1">{course.title}</h3>
+                            <p className="text-[11px] font-medium text-slate-500 truncate">{course.instructor?.name || ''}</p>
+                            <div className="flex items-center gap-1.5 mt-2">
+                                {rating > 0 ? (
+                                    <>
+                                        <Star size={11} className="text-amber-400 fill-amber-400" />
+                                        <span className="text-[11px] font-semibold text-slate-700">{rating.toFixed(1)}</span>
+                                    </>
+                                ) : (
+                                    <span className="text-[10px] font-medium text-slate-400">No ratings yet</span>
+                                )}
+                            </div>
+                            <div className="flex items-baseline gap-2 mt-2">
+                                <span className="text-sm font-semibold text-slate-900">
+                                    {finalPrice > 0 ? `₹${finalPrice}` : 'Free'}
+                                </span>
+                                {showOriginal && (
+                                    <span className="text-[11px] font-medium text-slate-400 line-through">₹{list}</span>
+                                )}
+                            </div>
+                        </div>
+                    </Link>
+                );
+            }) : (
+                [...Array(4)].map((_, i) => (
+                    <div key={i} className="snap-start shrink-0 w-[230px] bg-slate-50 rounded-2xl overflow-hidden">
+                        <div className="aspect-[16/10] bg-slate-100 animate-pulse" />
+                        <div className="p-3 space-y-2">
+                            <div className="h-3 bg-slate-100 rounded w-4/5 animate-pulse" />
+                            <div className="h-2.5 bg-slate-100 rounded w-2/5 animate-pulse" />
+                        </div>
+                    </div>
+                ))
+            )}
+        </div>
+      </section>
+
       {/* Features Bar */}
       <section className="py-16 px-6 bg-slate-50 border-y border-slate-100">
         <div className="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -212,39 +285,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Coursera-style Trending Section */}
-      <section className="py-24 px-6 bg-white">
-        <div className="max-w-[1600px] mx-auto bg-[#F0F2FF] rounded-[3rem] p-8 lg:p-16 relative overflow-hidden">
-            {/* Header Content */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-12 gap-8 relative z-10">
+      {/* ─── DESKTOP Trending Courses — hidden on mobile (rendered above the fold instead) ─── */}
+      <section className="hidden lg:block py-24 px-6 bg-white">
+        <div className="max-w-[1600px] mx-auto bg-gradient-to-br from-[#F4F6FF] via-white to-[#FAF6F0] rounded-[2rem] p-12 lg:p-16 relative overflow-hidden border border-slate-100">
+            {/* Soft tan accent in the corner */}
+            <div className="absolute top-0 right-0 w-[36rem] h-[36rem] bg-[#A68868]/8 blur-[140px] rounded-full -mr-40 -mt-40 pointer-events-none" />
+
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-12 gap-6 relative z-10">
                 <div className="max-w-3xl">
-                    <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4 tracking-tight leading-tight">Trending Courses Collection</h2>
-                    <p className="text-lg text-slate-500 font-medium leading-relaxed max-w-2xl">
-                        Master high-demand skills and transform your career with our most popular courses. <Link href="/explore" className="text-primary font-bold hover:underline ml-1">Explore all paths</Link>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#A68868] mb-3">Trending now</p>
+                    <h2 className="text-4xl font-semibold text-slate-900 mb-3 tracking-tight leading-tight">Master in-demand skills</h2>
+                    <p className="text-base text-slate-500 font-medium leading-relaxed max-w-2xl">
+                        The courses your peers can't stop talking about. Hand-picked weekly from across the EduFlow catalog.
                     </p>
                 </div>
-                <Link href="/explore" className="inline-flex items-center gap-3 px-8 py-4 bg-white border-2 border-primary text-primary font-bold rounded-2xl hover:bg-primary hover:text-white transition-all shadow-sm">
-                    Explore all trending
+                <Link
+                    href="/explore"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#071739] hover:bg-[#020a1a] text-white rounded-xl font-semibold text-xs uppercase tracking-widest transition-all shadow-sm shrink-0"
+                >
+                    Explore all <ArrowRight size={14} />
                 </Link>
             </div>
 
-            {/* Courses Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+            {/* Single-row horizontal scroller — 6 cards in one line, no grid wrap.
+                Cards have a fixed flex-basis so all 6 fit on wide screens; on narrower
+                viewports the strip scrolls horizontally with snap-to-card behavior. */}
+            <div className="flex gap-5 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2 -mx-2 px-2 relative z-10">
                 {trendingCourses.length > 0 ? (
-                    trendingCourses.map((course) => (
-                        <div key={course._id} className="bg-white rounded-[2rem] p-2 shadow-sm hover:shadow-xl transition-all">
-                             <CourseCard course={course} />
+                    trendingCourses.slice(0, 6).map((course) => (
+                        <div
+                            key={course._id}
+                            className="snap-start shrink-0 w-[280px] xl:w-auto xl:flex-1 xl:min-w-[220px] bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                        >
+                            <CourseCard course={course} />
                         </div>
                     ))
                 ) : (
-                    [...Array(4)].map((_, i) => (
-                        <div key={i} className="bg-white/40 backdrop-blur-sm rounded-[2rem] aspect-[16/22] animate-pulse" />
+                    [...Array(6)].map((_, i) => (
+                        <div
+                            key={i}
+                            className="snap-start shrink-0 w-[280px] xl:w-auto xl:flex-1 xl:min-w-[220px] bg-white/60 backdrop-blur-sm rounded-2xl aspect-[16/22] animate-pulse border border-slate-100"
+                        />
                     ))
                 )}
             </div>
-            
-            {/* Background Decorative Element */}
-            <div className="absolute top-0 right-0 w-[40%] h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
         </div>
       </section>
 
